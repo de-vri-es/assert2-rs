@@ -1,0 +1,16 @@
+[package]
+name = "check-macros"
+description = "procedural macros for check"
+version = "0.0.1"
+license = "BSD-2-Clause"
+authors = ["Maarten de Vries <maarten@de-vri.es>"]
+
+edition = "2018"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn = { version = "1.0.13", features = ["full"] }
+proc-macro2 = "1.0.7"
+quote = "1.0.2"
