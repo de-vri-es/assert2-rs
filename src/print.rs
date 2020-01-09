@@ -47,6 +47,17 @@ fn set_color() {
 	}
 }
 
+fn print_assertion_failed(file: &str, line: u32, column: u32) {
+	eprintln!("{msg} at {file}{colon}{line}{colon}{column}{bcolon}",
+		msg    = Paint::red("Assertion failed").bold(),
+		file   = Paint::default(file).bold(),
+		line   = line,
+		column = column,
+		colon  = Paint::blue(":"),
+		bcolon = Paint::default(":").bold(),
+	);
+}
+
 pub fn binary_failure<Left: MaybeDebug, Right: MaybeDebug>(
 	name: &str,
 	left: &Left,
@@ -59,14 +70,7 @@ pub fn binary_failure<Left: MaybeDebug, Right: MaybeDebug>(
 	column: u32,
 ) {
 	set_color();
-	eprintln!("{msg} at {file}{colon}{line}{colon}{column}{bcolon}",
-		msg    = Paint::red("Assertion failed").bold(),
-		file   = Paint::default(file).bold(),
-		line   = line,
-		column = column,
-		colon  = Paint::blue(":"),
-		bcolon = Paint::default(":").bold(),
-	);
+	print_assertion_failed(file, line, column);
 	eprintln!("  {name}{open} {left} {op} {right} {close}",
 		name  = Paint::magenta(name),
 		open  = Paint::magenta("!("),
@@ -93,14 +97,7 @@ pub fn bool_failure<Value: MaybeDebug>(
 	column: u32,
 ) {
 	set_color();
-	eprintln!("{msg} at {file}{colon}{line}{colon}{column}{bcolon}",
-		msg    = Paint::red("Assertion failed").bold(),
-		file   = Paint::default(file).bold(),
-		line   = line,
-		column = column,
-		colon  = Paint::blue(":"),
-		bcolon = Paint::default(":").bold(),
-	);
+	print_assertion_failed(file, line, column);
 	eprintln!("  {name}{open} {expr} {close}",
 		name  = Paint::magenta(name),
 		open  = Paint::magenta("!("),
@@ -109,5 +106,30 @@ pub fn bool_failure<Value: MaybeDebug>(
 	);
 	eprintln!("{}", Paint::default("with expansion:").bold());
 	eprintln!("  {:?}", Paint::cyan(wrap(value)));
+	eprintln!();
+}
+
+pub fn match_failure<Value: MaybeDebug>(
+	name: &str,
+	value: &Value,
+	pat: &str,
+	expr: &str,
+	file: &str,
+	line: u32,
+	column: u32,
+) {
+	set_color();
+	print_assertion_failed(file, line, column);
+	eprintln!("  {name}{open} {let_} {pat} {eq} {expr} {close}",
+		name  = Paint::magenta(name),
+		open  = Paint::magenta("!("),
+		let_  = Paint::blue("let").bold(),
+		pat   = Paint::cyan(pat),
+		eq    = Paint::blue("=").bold(),
+		expr  = Paint::yellow(expr),
+		close = Paint::magenta(")"),
+	);
+	eprintln!("{}", Paint::default("with expansion:").bold());
+	eprintln!("  {:?}", Paint::yellow(wrap(value)));
 	eprintln!();
 }

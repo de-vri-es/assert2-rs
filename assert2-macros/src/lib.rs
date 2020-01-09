@@ -37,6 +37,7 @@ pub fn assert(tokens: TokenStream) -> TokenStream {
 fn check_impl(expression: syn::Expr, instant_panic: bool) -> syn::Result<proc_macro2::TokenStream> {
 	match expression {
 		syn::Expr::Binary(expr) => check_binary_op(expr, instant_panic),
+		syn::Expr::Let(expr) => check_let_expr(expr, instant_panic),
 		expr => check_bool_expr(expr, instant_panic),
 	}
 }
@@ -100,6 +101,36 @@ fn check_bool_expr(expr: syn::Expr, instant_panic: bool) -> syn::Result<proc_mac
 				guard = Some(::assert2::FailGuard(|| panic!("assertion failed")));
 			} else {
 				guard = None;
+			}
+		})
+	}
+}
+
+fn check_let_expr(expr: syn::ExprLet, instant_panic: bool) -> syn::Result<proc_macro2::TokenStream> {
+	let syn::ExprLet { pat, expr, let_token, eq_token, .. } = expr;
+
+	let pat_str = spanned_to_string(&pat);
+	let expr_str = spanned_to_string(&expr);
+
+	if instant_panic {
+		Ok(quote! {
+			let value = #expr;
+			if #let_token #pat #eq_token &value {
+				// Nothing to do here.
+			} else {
+				::assert2::print::match_failure("assert", &value, #pat_str, #expr_str, file!(), line!(), column!());
+				panic!("assertion failed");
+			}
+		})
+	} else {
+		Ok(quote! {
+			let value = #expr;
+			let guard;
+			if #let_token #pat #eq_token &value {
+				guard = None;
+			} else {
+				::assert2::print::match_failure("check", &value, #pat_str, #expr_str, file!(), line!(), column!());
+				guard = Some(::assert2::FailGuard(|| panic!("assertion failed")));
 			}
 		})
 	}
