@@ -48,6 +48,7 @@ fn set_color() {
 }
 
 pub fn binary_failure<Left: MaybeDebug, Right: MaybeDebug>(
+	check: &str,
 	left: &Left,
 	right: &Right,
 	op_str: &str,
@@ -66,8 +67,9 @@ pub fn binary_failure<Left: MaybeDebug, Right: MaybeDebug>(
 		colon  = Paint::blue(":"),
 		bcolon = Paint::default(":").bold(),
 	);
-	eprintln!("  {check} {left} {op} {right} {close}",
-		check = Paint::magenta("check!("),
+	eprintln!("  {check}{open} {left} {op} {right} {close}",
+		check = Paint::magenta(check),
+		open  = Paint::magenta("!("),
 		left  = Paint::cyan(left_expr),
 		op    = Paint::blue(op_str).bold(),
 		right = Paint::yellow(right_expr),
@@ -79,6 +81,7 @@ pub fn binary_failure<Left: MaybeDebug, Right: MaybeDebug>(
 		op    = Paint::blue(op_str).bold(),
 		right = Paint::yellow(wrap(right)),
 	);
+	eprintln!();
 }
 
 pub fn bool_failure<Value: MaybeDebug>(
@@ -104,4 +107,5 @@ pub fn bool_failure<Value: MaybeDebug>(
 	);
 	eprintln!("{}", Paint::default("with expansion:").bold());
 	eprintln!("  {:?}", Paint::cyan(wrap(value)));
+	eprintln!();
 }
