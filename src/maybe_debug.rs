@@ -14,8 +14,7 @@ impl<T> MaybeDebug for T {
 	}
 
 	default fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-		let size = std::mem::size_of_val(self);
-		write!(f, "<object of {} bytes>", size)
+		write!(f, "<object of type {}>", std::any::type_name::<Self>())
 	}
 }
 
