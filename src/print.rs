@@ -58,6 +58,7 @@ fn print_assertion_failed(file: &str, line: u32, column: u32) {
 	);
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn binary_failure<Left: MaybeDebug, Right: MaybeDebug>(
 	name: &str,
 	left: &Left,
