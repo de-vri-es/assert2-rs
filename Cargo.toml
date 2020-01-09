@@ -1,5 +1,5 @@
 [package]
-name = "check"
+name = "assert2"
 description = "check!() macro inspired by Catch2"
 version = "0.0.1"
 license = "BSD-2-Clause"
@@ -8,5 +8,5 @@ authors = ["Maarten de Vries <maarten@de-vri.es>"]
 edition = "2018"
 
 [dependencies]
-check-macros = { version = "0.0.1", path = "check-macros" }
+assert2-macros = { version = "0.0.1", path = "assert2-macros" }
 yansi = "0.5.0"

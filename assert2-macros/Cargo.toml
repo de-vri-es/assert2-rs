@@ -1,6 +1,6 @@
 [package]
-name = "check-macros"
-description = "procedural macros for check"
+name = "assert2-macros"
+description = "procedural macros for assert2"
 version = "0.0.1"
 license = "BSD-2-Clause"
 authors = ["Maarten de Vries <maarten@de-vri.es>"]
