@@ -60,8 +60,9 @@
 //! This allows you to run multiple checks, and can help to paint a clearer picture why a test failed.
 //!
 //! Currently, `check` uses a scope guard to delay the panic until the current scope ends.
-//! Ideally, `check` wouldn't panic until the whole test body finished (or an `assert!(...)` fails).
-//! This will change in the future if it becomes possible, so *you should not rely on `check` to panic*.
+//! Ideally, `check` should not panic until the whole test body has finished.
+//! Even better would be if `check` doesn't panic at all, but simply marks the test as failed.
+//! If this becomes possible in the future, the `check` macro will change, so *you should not rely on `check` to panic*.
 //!
 //! # Controlling colors.
 //!
