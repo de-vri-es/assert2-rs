@@ -1,4 +1,5 @@
 v0.0.5:
+  * Update documentation.
   * Fix images in documentation.
 
 v0.0.4:
