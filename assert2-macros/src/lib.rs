@@ -6,29 +6,40 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::spanned::Spanned;
 
-/// Check if an expression evaluates to true.
+/// Assert that an expression evaluates to true or matches a pattern.
 ///
-/// If it does not, an assertion failure is printend,
-/// but any remaining code in the same scope will still execute.
-/// When the scope ends, the test will panic.
+/// Use a `let` expression to test an expression against a pattern: `assert!(let pattern = expr)`.
+/// For other tests, just give a boolean expression to the macro: `assert!(1 + 2 == 2)`.
 ///
-/// Use [`assert!`](macro.assert.html) if you want the test to panic instantly.
-#[proc_macro]
-pub fn check(tokens: TokenStream) -> TokenStream {
-	match check_impl(syn::parse_macro_input!(tokens), false) {
-		Ok(x) => x.into(),
-		Err(e) => e.to_compile_error().into(),
-	}
-}
-
-/// Assert that an expression evaluates to true.
-///
-/// If it does not, an assertion failure is printed and the test panics instantly.
+/// If the expression evaluates to false or if the pattern doesn't match,
+/// an assertion failure is printed and the macro panics instantly.
 ///
 /// Use [`check!`](macro.check.html) if you still want further checks to be executed.
 #[proc_macro]
 pub fn assert(tokens: TokenStream) -> TokenStream {
 	match check_impl(syn::parse_macro_input!(tokens), true) {
+		Ok(x) => x.into(),
+		Err(e) => e.to_compile_error().into(),
+	}
+}
+
+/// Check if an expression evaluates to true or matches a pattern.
+///
+/// Use a `let` expression to test an expression against a pattern: `check!(let pattern = expr)`.
+/// For other tests, just give a boolean expression to the macro: `check!(1 + 2 == 2)`.
+///
+/// If the expression evaluates to false or if the pattern doesn't match,
+/// an assertion failure is printed but the macro does not panic immediately.
+/// The check macro will cause the running test to fail eventually.
+///
+/// Use [`assert!`](macro.assert.html) if you want the test to panic instantly.
+///
+/// Currently, this macro uses a scope guard to delay the panic.
+/// However, this may change in the future if there is a way to signal a test failure without panicking.
+/// **Do not rely on `check!()` to panic**.
+#[proc_macro]
+pub fn check(tokens: TokenStream) -> TokenStream {
+	match check_impl(syn::parse_macro_input!(tokens), false) {
 		Ok(x) => x.into(),
 		Err(e) => e.to_compile_error().into(),
 	}
