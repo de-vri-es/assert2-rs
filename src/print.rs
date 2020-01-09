@@ -58,12 +58,13 @@ pub fn binary_failure<Left: MaybeDebug, Right: MaybeDebug>(
 	column: u32,
 ) {
 	set_color();
-	eprintln!("{msg} at {file}{colon}{line}{colon}{column}",
+	eprintln!("{msg} at {file}{colon}{line}{colon}{column}{bcolon}",
 		msg    = Paint::red("Assertion failed").bold(),
 		file   = Paint::default(file).bold(),
 		line   = line,
 		column = column,
 		colon  = Paint::blue(":"),
+		bcolon = Paint::default(":").bold(),
 	);
 	eprintln!("  {check} {left} {op} {right} {close}",
 		check = Paint::magenta("check!("),
@@ -88,12 +89,13 @@ pub fn bool_failure<Value: MaybeDebug>(
 	column: u32,
 ) {
 	set_color();
-	eprintln!("{msg} at {file}{colon}{line}{colon}{column}",
+	eprintln!("{msg} at {file}{colon}{line}{colon}{column}{bcolon}",
 		msg    = Paint::red("Assertion failed").bold(),
 		file   = Paint::default(file).bold(),
 		line   = line,
 		column = column,
 		colon  = Paint::blue(":"),
+		bcolon = Paint::default(":").bold(),
 	);
 	eprintln!("  {check} {expr} {close}",
 		check = Paint::magenta("check!("),
