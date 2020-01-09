@@ -1,9 +1,14 @@
 [package]
 name = "assert2"
-description = "check!() macro inspired by Catch2"
+description = "assert!(...) and check!(...) macros inspired by Catch2"
 version = "0.0.1"
 license = "BSD-2-Clause"
 authors = ["Maarten de Vries <maarten@de-vri.es>"]
+
+repository = "https://github.com/de-vri-es/assert2-rs"
+documentation = "https://docs.rs/assert2"
+keywords = ["assert", "check", "test", "unit-test"]
+categories = ["development-tools::debugging", "development-tools::testing"]
 
 edition = "2018"
 
