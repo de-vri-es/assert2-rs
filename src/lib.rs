@@ -6,13 +6,13 @@
 //! This crate is currently a work in progress.
 //! It relies on a nightly compiler with the `proc_macro_hygiene`, `proc_macro_span` and `specialization` features.
 
+pub use assert2_macros::assert;
+pub use assert2_macros::check;
+
 mod maybe_debug;
 
 #[doc(hidden)]
 pub mod print;
-
-pub use check_macros::assert;
-pub use check_macros::check;
 
 /// Scope guard to panic when a check!() fails.
 ///

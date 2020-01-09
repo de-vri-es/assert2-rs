@@ -1,6 +1,6 @@
 #![feature(proc_macro_hygiene)]
 
-use check::check;
+use assert2::check;
 
 fn main() {
 	let mut vec = Vec::new();

@@ -1,15 +1,15 @@
 #![feature(proc_macro_hygiene)]
 
-use check::check;
+use assert2::check;
 
 #[derive(Eq, PartialEq)]
 struct Foo(u32);
 
 #[test]
-fn check() {
-	check!(1 == 1);
-	check!(true && true);
-	check!(!(false && true));
+fn pass() {
+	assert2::check!(1 == 1);
+	assert2::check!(true && true);
+	assert2::check!(!(false && true));
 }
 
 #[test]

@@ -60,7 +60,7 @@ fn check_binary_op(expr: syn::ExprBinary, instant_panic: bool) -> syn::Result<pr
 	if instant_panic {
 		Ok(quote! {
 			if !(left #op right) {
-				::check::print::binary_failure("assert", &left, &right, #op_str, #left_str, #right_str, file!(), line!(), column!());
+				::assert2::print::binary_failure("assert", &left, &right, #op_str, #left_str, #right_str, file!(), line!(), column!());
 				panic!("assertion failed");
 			}
 		})
@@ -70,8 +70,8 @@ fn check_binary_op(expr: syn::ExprBinary, instant_panic: bool) -> syn::Result<pr
 			let right = #right;
 			let guard;
 			if !(left #op right) {
-				::check::print::binary_failure("check", &left, &right, #op_str, #left_str, #right_str, file!(), line!(), column!());
-				guard = Some(::check::FailGuard(|| panic!("assertion failed")));
+				::assert2::print::binary_failure("check", &left, &right, #op_str, #left_str, #right_str, file!(), line!(), column!());
+				guard = Some(::assert2::FailGuard(|| panic!("assertion failed")));
 			} else {
 				guard = None;
 			}
@@ -86,7 +86,7 @@ fn check_bool_expr(expr: syn::Expr, instant_panic: bool) -> syn::Result<proc_mac
 		Ok(quote! {
 			let value : bool = #expr;
 			if !value {
-				::check::print::bool_failure("assert", &value, #expr_str, file!(), line!(), column!());
+				::assert2::print::bool_failure("assert", &value, #expr_str, file!(), line!(), column!());
 				panic!("assertion failed");
 			}
 		})
@@ -95,9 +95,9 @@ fn check_bool_expr(expr: syn::Expr, instant_panic: bool) -> syn::Result<proc_mac
 			let value : bool = #expr;
 			let guard;
 			if !value {
-				::check::print::bool_failure("check", &value, #expr_str, file!(), line!(), column!());
+				::assert2::print::bool_failure("check", &value, #expr_str, file!(), line!(), column!());
 				eprintln!();
-				guard = Some(::check::FailGuard(|| panic!("assertion failed")));
+				guard = Some(::assert2::FailGuard(|| panic!("assertion failed")));
 			} else {
 				guard = None;
 			}
