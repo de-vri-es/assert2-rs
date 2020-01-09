@@ -97,7 +97,6 @@ fn check_bool_expr(expr: syn::Expr, instant_panic: bool) -> syn::Result<proc_mac
 			let guard;
 			if !value {
 				::assert2::print::bool_failure("check", &value, #expr_str, file!(), line!(), column!());
-				eprintln!();
 				guard = Some(::assert2::FailGuard(|| panic!("assertion failed")));
 			} else {
 				guard = None;
