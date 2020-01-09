@@ -10,7 +10,7 @@ use syn::spanned::Spanned;
 ///
 /// If it does not, an assertion failure is printend,
 /// but any remaining code in the same scope will still execute.
-/// When the scope ends, the test will panick.
+/// When the scope ends, the test will panic.
 ///
 /// Use [`assert!`](macro.assert.html) if you want the test to panic instantly.
 #[proc_macro]
