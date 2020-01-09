@@ -7,6 +7,9 @@ authors = ["Maarten de Vries <maarten@de-vri.es>"]
 
 edition = "2018"
 
+repository = "https://github.com/de-vri-es/assert2-rs"
+documentation = "https://docs.rs/assert2"
+
 [lib]
 proc-macro = true
 
