@@ -14,7 +14,7 @@ These macros offer some benefits over the assertions from the standard library:
   * You can test for pattern matches: `assert!(let Err(_) = File::open("/non/existing/file"))`.
   * The `check` macro can be used to perform multiple checks before panicking.
   * The macros provide more information when the assertion fails.
-  * The macros have colored failure messages!
+  * Colored failure messages!
 
 
 ## Examples
