@@ -1,7 +1,7 @@
 [package]
 name = "assert2"
 description = "assert!(...) and check!(...) macros inspired by Catch2"
-version = "0.0.7"
+version = "0.0.8"
 license = "BSD-2-Clause"
 authors = ["Maarten de Vries <maarten@de-vri.es>"]
 
@@ -13,5 +13,5 @@ keywords = ["assert", "check", "test", "unit-test"]
 categories = ["development-tools::debugging", "development-tools::testing"]
 
 [dependencies]
-assert2-macros = { version = "=0.0.6", path = "assert2-macros" }
+assert2-macros = { version = "=0.0.8", path = "assert2-macros" }
 yansi = "0.5.0"

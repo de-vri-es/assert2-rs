@@ -1,3 +1,7 @@
+v0.0.8:
+  * Fix compilation error in assert!()
+  * Limit scope of generated temporary variables
+
 v0.0.7:
   * Update documentation.
 
