@@ -6,7 +6,7 @@ fn main() {
 	let mut vec = Vec::new();
 	vec.push(1);
 
-	check!(let Some(_) = Some(1).filter(|_| false));
+	check!(let Some(_) = Some(1).filter(|_| false), "waaah: {}", 10);
 
 	{
 		check!(&vec == &vec![]);

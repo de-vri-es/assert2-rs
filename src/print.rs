@@ -86,7 +86,6 @@ pub fn binary_failure<Left: MaybeDebug, Right: MaybeDebug>(
 		op    = Paint::blue(op_str).bold(),
 		right = Paint::yellow(wrap(right)),
 	);
-	eprintln!();
 }
 
 pub fn bool_failure<Value: MaybeDebug>(
@@ -107,7 +106,6 @@ pub fn bool_failure<Value: MaybeDebug>(
 	);
 	eprintln!("{}", Paint::default("with expansion:").bold());
 	eprintln!("  {:?}", Paint::cyan(wrap(value)));
-	eprintln!();
 }
 
 pub fn match_failure<Value: MaybeDebug>(
@@ -132,5 +130,8 @@ pub fn match_failure<Value: MaybeDebug>(
 	);
 	eprintln!("{}", Paint::default("with expansion:").bold());
 	eprintln!("  {:?}", Paint::yellow(wrap(value)));
-	eprintln!();
+}
+
+pub fn user_message_prefix() {
+	eprint!("{}\n  ", Paint::default("with message:").bold())
 }
