@@ -91,23 +91,29 @@ fn check_binary_op(expr: syn::ExprBinary, format_args: FormatArgs, instant_panic
 
 	if instant_panic {
 		Ok(quote! {
-			if !(left #op right) {
-				::assert2::print::binary_failure("assert", &left, &right, #op_str, #left_str, #right_str, file!(), line!(), column!());
-				#extra_print
-				panic!("assertion failed");
+			{
+				let left = #left;
+				let right = #right;
+				if !(left #op right) {
+					::assert2::print::binary_failure("assert", &left, &right, #op_str, #left_str, #right_str, file!(), line!(), column!());
+					#extra_print
+					panic!("assertion failed");
+				}
 			}
 		})
 	} else {
 		Ok(quote! {
-			let left = #left;
-			let right = #right;
 			let guard;
-			if !(left #op right) {
-				::assert2::print::binary_failure("check", &left, &right, #op_str, #left_str, #right_str, file!(), line!(), column!());
-				#extra_print
-				guard = Some(::assert2::FailGuard(|| panic!("assertion failed")));
-			} else {
-				guard = None;
+			{
+				let left = #left;
+				let right = #right;
+				if !(left #op right) {
+					::assert2::print::binary_failure("check", &left, &right, #op_str, #left_str, #right_str, file!(), line!(), column!());
+					#extra_print
+					guard = Some(::assert2::FailGuard(|| panic!("assertion failed")));
+				} else {
+					guard = None;
+				}
 			}
 		})
 	}
@@ -119,23 +125,27 @@ fn check_bool_expr(expr: syn::Expr, format_args: FormatArgs, instant_panic: bool
 
 	if instant_panic {
 		Ok(quote! {
-			let value : bool = #expr;
-			if !value {
-				::assert2::print::bool_failure("assert", &value, #expr_str, file!(), line!(), column!());
-				#extra_print
-				panic!("assertion failed");
+			{
+				let value: bool = #expr;
+				if !value {
+					::assert2::print::bool_failure("assert", &value, #expr_str, file!(), line!(), column!());
+					#extra_print
+					panic!("assertion failed");
+				}
 			}
 		})
 	} else {
 		Ok(quote! {
-			let value : bool = #expr;
 			let guard;
-			if !value {
-				::assert2::print::bool_failure("check", &value, #expr_str, file!(), line!(), column!());
-				#extra_print
-				guard = Some(::assert2::FailGuard(|| panic!("assertion failed")));
-			} else {
-				guard = None;
+			{
+				let value: bool = #expr;
+				if !value {
+					::assert2::print::bool_failure("check", &value, #expr_str, file!(), line!(), column!());
+					#extra_print
+					guard = Some(::assert2::FailGuard(|| panic!("assertion failed")));
+				} else {
+					guard = None;
+				}
 			}
 		})
 	}
@@ -150,25 +160,29 @@ fn check_let_expr(expr: syn::ExprLet, format_args: FormatArgs, instant_panic: bo
 
 	if instant_panic {
 		Ok(quote! {
-			let value = #expr;
-			if #let_token #pat #eq_token &value {
-				// Nothing to do here.
-			} else {
-				::assert2::print::match_failure("assert", &value, #pat_str, #expr_str, file!(), line!(), column!());
-				#extra_print
-				panic!("assertion failed");
+			{
+				let value = #expr;
+				if #let_token #pat #eq_token &value {
+					// Nothing to do here.
+				} else {
+					::assert2::print::match_failure("assert", &value, #pat_str, #expr_str, file!(), line!(), column!());
+					#extra_print
+					panic!("assertion failed");
+				}
 			}
 		})
 	} else {
 		Ok(quote! {
-			let value = #expr;
 			let guard;
-			if #let_token #pat #eq_token &value {
-				guard = None;
-			} else {
-				::assert2::print::match_failure("check", &value, #pat_str, #expr_str, file!(), line!(), column!());
-				#extra_print
-				guard = Some(::assert2::FailGuard(|| panic!("assertion failed")));
+			{
+				let value = #expr;
+				if #let_token #pat #eq_token &value {
+					guard = None;
+				} else {
+					::assert2::print::match_failure("check", &value, #pat_str, #expr_str, file!(), line!(), column!());
+					#extra_print
+					guard = Some(::assert2::FailGuard(|| panic!("assertion failed")));
+				}
 			}
 		})
 	}
