@@ -1,3 +1,6 @@
+v0.0.7:
+  * Update documentation.
+
 v0.0.6:
   * Support additional arguments to print custom messages with failures.
 

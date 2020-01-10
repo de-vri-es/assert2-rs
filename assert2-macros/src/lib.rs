@@ -18,6 +18,14 @@ type FormatArgs = Punctuated<syn::Expr, syn::token::Comma>;
 /// an assertion failure is printed and the macro panics instantly.
 ///
 /// Use [`check!`](macro.check.html) if you still want further checks to be executed.
+///
+/// # Custom messages
+/// You can pass additional arguments to the macro.
+/// These will be used to print a custom message in addition to the normal message.
+///
+/// ```
+/// assert!(3 * 4 == 12, "Oh no, math is broken! 1 + 1 == {}", 1 + 1);
+/// ```
 #[proc_macro]
 pub fn assert(tokens: TokenStream) -> TokenStream {
 	match check_impl(syn::parse_macro_input!(tokens), true) {
@@ -40,6 +48,14 @@ pub fn assert(tokens: TokenStream) -> TokenStream {
 /// Currently, this macro uses a scope guard to delay the panic.
 /// However, this may change in the future if there is a way to signal a test failure without panicking.
 /// **Do not rely on `check!()` to panic**.
+///
+/// # Custom messages
+/// You can pass additional arguments to the macro.
+/// These will be used to print a custom message in addition to the normal message.
+///
+/// ```
+/// check!(3 * 4 == 12, "Oh no, math is broken! 1 + 1 == {}", 1 + 1);
+/// ```
 #[proc_macro]
 pub fn check(tokens: TokenStream) -> TokenStream {
 	match check_impl(syn::parse_macro_input!(tokens), false) {

@@ -17,6 +17,8 @@
 //!   * The macros provide more information when the assertion fails.
 //!   * Colored failure messages!
 //!
+//! The macros also accept additional arguments for a custom message, so it is fully comptabible with `std::assert`.
+//! That means you don't have to worry about overwriting the standard `assert` with `use assert2::assert`.
 //!
 //! # Examples
 //!
