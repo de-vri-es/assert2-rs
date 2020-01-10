@@ -91,6 +91,8 @@ fn check_binary_op(expr: syn::ExprBinary, format_args: FormatArgs, instant_panic
 
 	if instant_panic {
 		Ok(quote! {
+			let left = #left;
+			let right = #right;
 			if !(left #op right) {
 				::assert2::print::binary_failure("assert", &left, &right, #op_str, #left_str, #right_str, file!(), line!(), column!());
 				#extra_print
