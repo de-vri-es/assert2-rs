@@ -1,5 +1,3 @@
-#![feature(proc_macro_hygiene)]
-
 use assert2::check;
 
 fn main() {

@@ -3,68 +3,31 @@
 extern crate proc_macro;
 
 use proc_macro::TokenStream;
+use proc_macro_hack::proc_macro_hack;
 use quote::quote;
 use syn::punctuated::Punctuated;
 use syn::spanned::Spanned;
 
 type FormatArgs = Punctuated<syn::Expr, syn::token::Comma>;
 
-/// Assert that an expression evaluates to true or matches a pattern.
-///
-/// Use a `let` expression to test an expression against a pattern: `assert!(let pattern = expr)`.
-/// For other tests, just give a boolean expression to the macro: `assert!(1 + 2 == 2)`.
-///
-/// If the expression evaluates to false or if the pattern doesn't match,
-/// an assertion failure is printed and the macro panics instantly.
-///
-/// Use [`check!`](macro.check.html) if you still want further checks to be executed.
-///
-/// # Custom messages
-/// You can pass additional arguments to the macro.
-/// These will be used to print a custom message in addition to the normal message.
-///
-/// ```
-/// assert!(3 * 4 == 12, "Oh no, math is broken! 1 + 1 == {}", 1 + 1);
-/// ```
-#[proc_macro]
+#[proc_macro_hack]
 pub fn assert(tokens: TokenStream) -> TokenStream {
-	match check_impl(syn::parse_macro_input!(tokens), true) {
+	match check_or_assert_impl(syn::parse_macro_input!(tokens), true) {
 		Ok(x) => x.into(),
 		Err(e) => e.to_compile_error().into(),
 	}
 }
 
-/// Check if an expression evaluates to true or matches a pattern.
-///
-/// Use a `let` expression to test an expression against a pattern: `check!(let pattern = expr)`.
-/// For other tests, just give a boolean expression to the macro: `check!(1 + 2 == 2)`.
-///
-/// If the expression evaluates to false or if the pattern doesn't match,
-/// an assertion failure is printed but the macro does not panic immediately.
-/// The check macro will cause the running test to fail eventually.
-///
-/// Use [`assert!`](macro.assert.html) if you want the test to panic instantly.
-///
-/// Currently, this macro uses a scope guard to delay the panic.
-/// However, this may change in the future if there is a way to signal a test failure without panicking.
-/// **Do not rely on `check!()` to panic**.
-///
-/// # Custom messages
-/// You can pass additional arguments to the macro.
-/// These will be used to print a custom message in addition to the normal message.
-///
-/// ```
-/// check!(3 * 4 == 12, "Oh no, math is broken! 1 + 1 == {}", 1 + 1);
-/// ```
-#[proc_macro]
-pub fn check(tokens: TokenStream) -> TokenStream {
-	match check_impl(syn::parse_macro_input!(tokens), false) {
+#[proc_macro_hack]
+pub fn check_impl(tokens: TokenStream) -> TokenStream {
+	match check_or_assert_impl(syn::parse_macro_input!(tokens), false) {
 		Ok(x) => x.into(),
 		Err(e) => e.to_compile_error().into(),
 	}
 }
 
-fn check_impl(args: Args, instant_panic: bool) -> syn::Result<proc_macro2::TokenStream> {
+/// Real implementation for assert!() and check!().
+fn check_or_assert_impl(args: Args, instant_panic: bool) -> syn::Result<proc_macro2::TokenStream> {
 	match args.expr {
 		syn::Expr::Binary(expr) => check_binary_op(expr, args.format_args, instant_panic),
 		syn::Expr::Let(expr) => check_let_expr(expr, args.format_args, instant_panic),
@@ -103,16 +66,15 @@ fn check_binary_op(expr: syn::ExprBinary, format_args: FormatArgs, instant_panic
 		})
 	} else {
 		Ok(quote! {
-			let guard;
 			{
 				let left = #left;
 				let right = #right;
 				if !(left #op right) {
 					::assert2::print::binary_failure("check", &left, &right, #op_str, #left_str, #right_str, file!(), line!(), column!());
 					#extra_print
-					guard = Some(::assert2::FailGuard(|| panic!("assertion failed")));
+					Some(::assert2::FailGuard(|| panic!("assertion failed")))
 				} else {
-					guard = None;
+					None
 				}
 			}
 		})
@@ -136,15 +98,14 @@ fn check_bool_expr(expr: syn::Expr, format_args: FormatArgs, instant_panic: bool
 		})
 	} else {
 		Ok(quote! {
-			let guard;
 			{
 				let value: bool = #expr;
 				if !value {
 					::assert2::print::bool_failure("check", &value, #expr_str, file!(), line!(), column!());
 					#extra_print
-					guard = Some(::assert2::FailGuard(|| panic!("assertion failed")));
+					Some(::assert2::FailGuard(|| panic!("assertion failed")))
 				} else {
-					guard = None;
+					None
 				}
 			}
 		})
@@ -173,15 +134,14 @@ fn check_let_expr(expr: syn::ExprLet, format_args: FormatArgs, instant_panic: bo
 		})
 	} else {
 		Ok(quote! {
-			let guard;
 			{
 				let value = #expr;
 				if #let_token #pat #eq_token &value {
-					guard = None;
+					None
 				} else {
 					::assert2::print::match_failure("check", &value, #pat_str, #expr_str, file!(), line!(), column!());
 					#extra_print
-					guard = Some(::assert2::FailGuard(|| panic!("assertion failed")));
+					Some(::assert2::FailGuard(|| panic!("assertion failed")))
 				}
 			}
 		})

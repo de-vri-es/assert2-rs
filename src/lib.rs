@@ -1,11 +1,9 @@
-#![feature(proc_macro_hygiene)]
 #![feature(specialization)]
 
 //! All-purpose [`assert!(...)`](macro.assert.html) and [`check!(...)`](macro.check.html) macros, inspired by [Catch2](https://github.com/catchorg/Catch2).
 //!
 //! This crate is currently a work in progress.
-//! It relies on a nightly compiler with the `proc_macro_hygiene`, `proc_macro_span` and `specialization` features.
-//! As a user of the crate, you also need to enable the `proc_macro_hygiene` feature.
+//! It relies on a nightly compiler with the `proc_macro_span` and `specialization` features.
 //!
 //! # Why these macros?
 //!
@@ -23,7 +21,6 @@
 //! # Examples
 //!
 //! ```should_panic
-//! # #![feature(proc_macro_hygiene)]
 //! # use assert2::check;
 //! check!(6 + 1 <= 2 * 3);
 //! ```
@@ -33,7 +30,6 @@
 //! ----------
 //!
 //! ```should_panic
-//! # #![feature(proc_macro_hygiene)]
 //! # use assert2::check;
 //! check!(true && false);
 //! ```
@@ -43,7 +39,6 @@
 //! ----------
 //!
 //! ```should_panic
-//! # #![feature(proc_macro_hygiene)]
 //! # use assert2::check;
 //! # use std::fs::File;
 //! check!(let Ok(_) = File::open("/non/existing/file"));
@@ -67,8 +62,61 @@
 //! Set `CLICOLOR=1` to forcibly enable colors, or `CLICOLORS=0` to disable them.
 //! If the environment variable is unset or set to `auto`, output will be colored if it is going to a terminal.
 
+use proc_macro_hack::proc_macro_hack;
+
+/// Assert that an expression evaluates to true or matches a pattern.
+///
+/// Use a `let` expression to test an expression against a pattern: `assert!(let pattern = expr)`.
+/// For other tests, just give a boolean expression to the macro: `assert!(1 + 2 == 2)`.
+///
+/// If the expression evaluates to false or if the pattern doesn't match,
+/// an assertion failure is printed and the macro panics instantly.
+///
+/// Use [`check!`](macro.check.html) if you still want further checks to be executed.
+///
+/// # Custom messages
+/// You can pass additional arguments to the macro.
+/// These will be used to print a custom message in addition to the normal message.
+///
+/// ```
+/// # use ::assert2::assert;
+/// assert!(3 * 4 == 12, "Oh no, math is broken! 1 + 1 == {}", 1 + 1);
+/// ```
+#[proc_macro_hack]
 pub use assert2_macros::assert;
-pub use assert2_macros::check;
+
+#[proc_macro_hack]
+pub use assert2_macros::check_impl;
+
+/// Check if an expression evaluates to true or matches a pattern.
+///
+/// Use a `let` expression to test an expression against a pattern: `check!(let pattern = expr)`.
+/// For other tests, just give a boolean expression to the macro: `check!(1 + 2 == 2)`.
+///
+/// If the expression evaluates to false or if the pattern doesn't match,
+/// an assertion failure is printed but the macro does not panic immediately.
+/// The check macro will cause the running test to fail eventually.
+///
+/// Use [`assert!`](macro.assert.html) if you want the test to panic instantly.
+///
+/// Currently, this macro uses a scope guard to delay the panic.
+/// However, this may change in the future if there is a way to signal a test failure without panicking.
+/// **Do not rely on `check!()` to panic**.
+///
+/// # Custom messages
+/// You can pass additional arguments to the macro.
+/// These will be used to print a custom message in addition to the normal message.
+///
+/// ```
+/// # use ::assert2::check;
+/// check!(3 * 4 == 12, "Oh no, math is broken! 1 + 1 == {}", 1 + 1);
+/// ```
+#[macro_export]
+macro_rules! check {
+	($($tokens:tt)*) => {
+		let _guard = ::assert2::check_impl!($($tokens)*);
+	}
+}
 
 mod maybe_debug;
 

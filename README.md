@@ -1,10 +1,9 @@
 # assert2
 
-All-purpose [`assert!(...)`](https://docs.rs/assert2/latest/assert2/macro.assert.html) and [`check!(...)`](https://docs.rs/assert2/latest/assert2/macro.check.html) macros, inspired by [Catch2](https://github.com/catchorg/Catch2).
+All-purpose [`assert!(...)`](https://docs.rs/assert2/latest/assert2/macro.assert.html) and [`check!(...)`](https://docs.rs/assert2/latest/assert2/macro.assert.html) macros, inspired by [Catch2](https://github.com/catchorg/Catch2).
 
 This crate is currently a work in progress.
-It relies on a nightly compiler with the `proc_macro_hygiene`, `proc_macro_span` and `specialization` features.
-As a user of the crate, you also need to enable the `proc_macro_hygiene` feature.
+It relies on a nightly compiler with the `proc_macro_span` and `specialization` features.
 
 ## Why these macros?
 
@@ -16,6 +15,8 @@ These macros offer some benefits over the assertions from the standard library:
   * The macros provide more information when the assertion fails.
   * Colored failure messages!
 
+The macros also accept additional arguments for a custom message, so it is fully comptabible with `std::assert`.
+That means you don't have to worry about overwriting the standard `assert` with `use assert2::assert`.
 
 ## Examples
 
