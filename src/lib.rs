@@ -62,6 +62,10 @@
 
 use proc_macro_hack::proc_macro_hack;
 
+#[doc(hidden)]
+#[proc_macro_hack]
+pub use assert2_macros::check_impl;
+
 /// Assert that an expression evaluates to true or matches a pattern.
 ///
 /// Use a `let` expression to test an expression against a pattern: `assert!(let pattern = expr)`.
@@ -80,11 +84,15 @@ use proc_macro_hack::proc_macro_hack;
 /// # use ::assert2::assert;
 /// assert!(3 * 4 == 12, "Oh no, math is broken! 1 + 1 == {}", 1 + 1);
 /// ```
-#[proc_macro_hack]
-pub use assert2_macros::assert;
-
-#[proc_macro_hack]
-pub use assert2_macros::check_impl;
+#[macro_export]
+macro_rules! assert {
+	($($tokens:tt)*) => {
+		if let Err(()) = ::assert2::check_impl!("assert!()", $($tokens)*) {
+			eprintln!();
+			panic!("assertion failed");
+		}
+	}
+}
 
 /// Check if an expression evaluates to true or matches a pattern.
 ///
@@ -112,7 +120,13 @@ pub use assert2_macros::check_impl;
 #[macro_export]
 macro_rules! check {
 	($($tokens:tt)*) => {
-		let _guard = ::assert2::check_impl!($($tokens)*);
+		let _guard = match ::assert2::check_impl!("check!()", $($tokens)*) {
+			Ok(_) => None,
+			Err(_) => {
+				eprintln!();
+				Some(::assert2::FailGuard(|| panic!("check failed")))
+			},
+		};
 	}
 }
 
