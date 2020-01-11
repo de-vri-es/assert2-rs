@@ -24,7 +24,7 @@ impl<'a, T> IsMaybeNotDebug for &'a T {
 	}
 }
 
-pub struct MaybeNotDebug<'a, T: ?Sized>(&'a T);
+pub struct MaybeNotDebug<'a, T>(&'a T);
 
 impl<'a, T> std::fmt::Debug for MaybeNotDebug<'a, T> {
 	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {

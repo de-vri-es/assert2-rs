@@ -1,9 +1,6 @@
 use assert2::check;
 use assert2::assert;
 
-#[derive(Eq, PartialEq)]
-struct Foo(u32);
-
 #[test]
 fn check_pass() {
 	check!(1 == 1);
