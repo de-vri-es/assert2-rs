@@ -131,9 +131,9 @@ pub mod print;
 pub struct FailGuard<T: FnMut()>(pub T);
 
 impl<T: FnMut()> Drop for FailGuard<T> {
-	fn drop(&mut self) {
-		if !std::thread::panicking() {
-			(self.0)()
-		}
-	}
+    fn drop(&mut self) {
+        if !std::thread::panicking() {
+            (self.0)()
+        }
+    }
 }
