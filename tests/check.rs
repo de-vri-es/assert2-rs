@@ -30,6 +30,35 @@ fn assert_pass() {
 	assert!(let Ok(10) = Result::<i32, i32>::Ok(10), "{}", "rust broke",);
 }
 
+#[derive(Eq, PartialEq, Ord, PartialOrd)]
+struct I(i32);
+
+#[test]
+fn check_non_debug() {
+	check!(I(1) == I(1));
+	check!(I(1) == I(1), "{}", "math broke");
+	check!(I(1) == I(1), "{}", "math broke",);
+	check!(!!(true && true));
+	check!(!!(true && true), "{}", "logic broke");
+	check!(!!(true && true), "{}", "logic broke",);
+	check!(let I(10) = I(10));
+	check!(let I(10) = I(10), "{}", "rust broke");
+	check!(let I(10) = I(10), "{}", "rust broke",);
+}
+
+#[test]
+fn assert_non_debug() {
+	assert!(I(1) == I(1));
+	assert!(I(1) == I(1), "{}", "math broke");
+	assert!(I(1) == I(1), "{}", "math broke",);
+	assert!(!!(true && true));
+	assert!(!!(true && true), "{}", "logic broke");
+	assert!(!!(true && true), "{}", "logic broke",);
+	assert!(let I(10) = I(10));
+	assert!(let I(10) = I(10), "{}", "rust broke");
+	assert!(let I(10) = I(10), "{}", "rust broke",);
+}
+
 macro_rules! test_panic {
 	($name:ident, $($expr:tt)*) => {
 		#[test]

@@ -58,6 +58,9 @@ fn check_binary_op(expr: syn::ExprBinary, format_args: FormatArgs, instant_panic
 				let left = #left;
 				let right = #right;
 				if !(left #op right) {
+					use ::assert2::maybe_debug::{IsDebug, IsMaybeNotDebug};
+					let left = (&left).__assert2_wrap_debug();
+					let right = (&right).__assert2_wrap_debug();
 					::assert2::print::binary_failure("assert", &left, &right, #op_str, #left_str, #right_str, file!(), line!(), column!());
 					#extra_print
 					panic!("assertion failed");
@@ -70,6 +73,9 @@ fn check_binary_op(expr: syn::ExprBinary, format_args: FormatArgs, instant_panic
 				let left = #left;
 				let right = #right;
 				if !(left #op right) {
+					use ::assert2::maybe_debug::{IsDebug, IsMaybeNotDebug};
+					let left = (&left).__assert2_wrap_debug();
+					let right = (&right).__assert2_wrap_debug();
 					::assert2::print::binary_failure("check", &left, &right, #op_str, #left_str, #right_str, file!(), line!(), column!());
 					#extra_print
 					Some(::assert2::FailGuard(|| panic!("assertion failed")))
@@ -90,7 +96,9 @@ fn check_bool_expr(expr: syn::Expr, format_args: FormatArgs, instant_panic: bool
 			{
 				let value: bool = #expr;
 				if !value {
-					::assert2::print::bool_failure("assert", &value, #expr_str, file!(), line!(), column!());
+					use ::assert2::maybe_debug::{IsDebug, IsMaybeNotDebug};
+					let value = (&value).__assert2_wrap_debug();
+					::assert2::print::bool_failure("assert", value, #expr_str, file!(), line!(), column!());
 					#extra_print
 					panic!("assertion failed");
 				}
@@ -101,7 +109,9 @@ fn check_bool_expr(expr: syn::Expr, format_args: FormatArgs, instant_panic: bool
 			{
 				let value: bool = #expr;
 				if !value {
-					::assert2::print::bool_failure("check", &value, #expr_str, file!(), line!(), column!());
+					use ::assert2::maybe_debug::{IsDebug, IsMaybeNotDebug};
+					let value = (&value).__assert2_wrap_debug();
+					::assert2::print::bool_failure("check", value, #expr_str, file!(), line!(), column!());
 					#extra_print
 					Some(::assert2::FailGuard(|| panic!("assertion failed")))
 				} else {
@@ -126,7 +136,9 @@ fn check_let_expr(expr: syn::ExprLet, format_args: FormatArgs, instant_panic: bo
 				if #let_token #pat #eq_token &value {
 					// Nothing to do here.
 				} else {
-					::assert2::print::match_failure("assert", &value, #pat_str, #expr_str, file!(), line!(), column!());
+					use ::assert2::maybe_debug::{IsDebug, IsMaybeNotDebug};
+					let value = (&value).__assert2_wrap_debug();
+					::assert2::print::match_failure("assert", value, #pat_str, #expr_str, file!(), line!(), column!());
 					#extra_print
 					panic!("assertion failed");
 				}
@@ -139,7 +151,9 @@ fn check_let_expr(expr: syn::ExprLet, format_args: FormatArgs, instant_panic: bo
 				if #let_token #pat #eq_token &value {
 					None
 				} else {
-					::assert2::print::match_failure("check", &value, #pat_str, #expr_str, file!(), line!(), column!());
+					use ::assert2::maybe_debug::{IsDebug, IsMaybeNotDebug};
+					let value = (&value).__assert2_wrap_debug();
+					::assert2::print::match_failure("check", value, #pat_str, #expr_str, file!(), line!(), column!());
 					#extra_print
 					Some(::assert2::FailGuard(|| panic!("assertion failed")))
 				}

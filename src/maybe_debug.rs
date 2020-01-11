@@ -1,45 +1,33 @@
-/// Trait to print values using `Debug` if it is implemented.
-pub trait MaybeDebug {
-	/// Test if debug is implemented for the type.
-	fn is_debug() -> bool;
+use std::fmt::Debug;
 
-	/// Format self, or print a fallback if the type does not implement Debug.
-	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result;
+pub trait IsDebug {
+	fn __assert2_wrap_debug(&self) -> &Self;
 }
 
-/// Default implementation of MaybeDebug that prints a fallback value.
-impl<T> MaybeDebug for T {
-	default fn is_debug() -> bool {
-		false
-	}
+pub trait IsMaybeNotDebug {
+	type Wrapper;
 
-	default fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-		write!(f, "<object of type {}>", std::any::type_name::<Self>())
+	fn __assert2_wrap_debug(&self) -> Self::Wrapper;
+}
+
+impl<T: Debug> IsDebug for T {
+	fn __assert2_wrap_debug(&self) -> &T {
+		self
 	}
 }
 
-/// Specilization of MaybeDebug for types that implement Debug.
-impl<T: std::fmt::Debug> MaybeDebug for T {
-	fn is_debug() -> bool {
-		true
-	}
+impl<T> IsMaybeNotDebug for &T {
+	type Wrapper = MaybeNotDebug<T>;
 
+	fn __assert2_wrap_debug(&self) -> MaybeNotDebug<T> {
+		MaybeNotDebug(std::marker::PhantomData)
+	}
+}
+
+pub struct MaybeNotDebug<T: ?Sized>(std::marker::PhantomData<T>);
+
+impl<T> std::fmt::Debug for MaybeNotDebug<T> {
 	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-		std::fmt::Debug::fmt(self, f)
+		write!(f, "<object of type {}>", std::any::type_name::<T>())
 	}
-}
-
-/// Wrapper that always implements Debug using the MaybeDebug trait.
-pub struct DebugWrapper<'a, T>(&'a T);
-
-/// Print the wrapped value if it implements Debug, or a fallback.
-impl<T: MaybeDebug> std::fmt::Debug for DebugWrapper<'_, T> {
-	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-		MaybeDebug::fmt(self.0, f)
-	}
-}
-
-/// Wrap a value so that it can always be printed with Debug.
-pub fn wrap<T: MaybeDebug>(value: &T) -> DebugWrapper<T> {
-	DebugWrapper(value)
 }

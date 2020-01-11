@@ -1,7 +1,7 @@
-use crate::maybe_debug::MaybeDebug;
-use crate::maybe_debug::wrap;
 use std::os::raw::c_int;
 use yansi::Paint;
+
+use std::fmt::Debug;
 
 extern "C" {
 	fn isatty(fd: c_int) -> c_int;
@@ -59,10 +59,10 @@ fn print_assertion_failed(file: &str, line: u32, column: u32) {
 }
 
 #[allow(clippy::too_many_arguments)]
-pub fn binary_failure<Left: MaybeDebug, Right: MaybeDebug>(
+pub fn binary_failure<Left: Debug, Right: Debug>(
 	name: &str,
-	left: &Left,
-	right: &Right,
+	left: Left,
+	right: Right,
 	op_str: &str,
 	left_expr: &str,
 	right_expr: &str,
@@ -82,15 +82,15 @@ pub fn binary_failure<Left: MaybeDebug, Right: MaybeDebug>(
 	);
 	eprintln!("{}", Paint::default("with expansion:").bold());
 	eprintln!("  {left:?} {op} {right:?}",
-		left  = Paint::cyan(wrap(left)),
+		left  = Paint::cyan(left),
 		op    = Paint::blue(op_str).bold(),
-		right = Paint::yellow(wrap(right)),
+		right = Paint::yellow(right),
 	);
 }
 
-pub fn bool_failure<Value: MaybeDebug>(
+pub fn bool_failure<Value: Debug>(
 	name: &str,
-	value: &Value,
+	value: Value,
 	expr: &str,
 	file: &str,
 	line: u32,
@@ -105,12 +105,12 @@ pub fn bool_failure<Value: MaybeDebug>(
 		close = Paint::magenta(")"),
 	);
 	eprintln!("{}", Paint::default("with expansion:").bold());
-	eprintln!("  {:?}", Paint::cyan(wrap(value)));
+	eprintln!("  {:?}", Paint::cyan(value));
 }
 
-pub fn match_failure<Value: MaybeDebug>(
+pub fn match_failure<Value: Debug>(
 	name: &str,
-	value: &Value,
+	value: Value,
 	pat: &str,
 	expr: &str,
 	file: &str,
@@ -129,7 +129,7 @@ pub fn match_failure<Value: MaybeDebug>(
 		close = Paint::magenta(")"),
 	);
 	eprintln!("{}", Paint::default("with expansion:").bold());
-	eprintln!("  {:?}", Paint::yellow(wrap(value)));
+	eprintln!("  {:?}", Paint::yellow(value));
 }
 
 pub fn user_message_prefix() {
