@@ -1,6 +1,6 @@
 # assert2
 
-All-purpose [`assert!(...)`](https://docs.rs/assert2/latest/assert2/macro.assert.html) and [`check!(...)`](https://docs.rs/assert2/latest/assert2/macro.assert.html) macros, inspired by [Catch2](https://github.com/catchorg/Catch2).
+All-purpose [`assert!(...)`](https://docs.rs/assert2/latest/assert2/macro.assert.html) and [`check!(...)`](https://docs.rs/assert2/latest/assert2/macro.check.html) macros, inspired by [Catch2](https://github.com/catchorg/Catch2).
 
 This crate is currently a work in progress.
 It relies on a nightly compiler with the `proc_macro_span` and `specialization` features.
