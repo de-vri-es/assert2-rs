@@ -16,17 +16,17 @@ impl<T: Debug> IsDebug for T {
 	}
 }
 
-impl<T> IsMaybeNotDebug for &T {
-	type Wrapper = MaybeNotDebug<T>;
+impl<'a, T> IsMaybeNotDebug for &'a T {
+	type Wrapper = MaybeNotDebug<'a, T>;
 
-	fn __assert2_wrap_debug(&self) -> MaybeNotDebug<T> {
-		MaybeNotDebug(std::marker::PhantomData)
+	fn __assert2_wrap_debug(&self) -> MaybeNotDebug<'a, T> {
+		MaybeNotDebug(*self)
 	}
 }
 
-pub struct MaybeNotDebug<T: ?Sized>(std::marker::PhantomData<T>);
+pub struct MaybeNotDebug<'a, T: ?Sized>(&'a T);
 
-impl<T> std::fmt::Debug for MaybeNotDebug<T> {
+impl<'a, T> std::fmt::Debug for MaybeNotDebug<'a, T> {
 	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
 		write!(f, "<object of type {}>", std::any::type_name::<T>())
 	}
