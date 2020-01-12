@@ -1,3 +1,7 @@
+v0.0.9:
+  * Use `proc-macro-hack` to avoid `feature(proc_macro_hygiene)`.
+  * Use auto-deref specialization to avoid `feature(proc_macro_hygiene)`.
+
 v0.0.8:
   * Fix compilation error in assert!()
   * Limit scope of generated temporary variables
