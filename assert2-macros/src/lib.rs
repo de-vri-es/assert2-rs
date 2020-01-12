@@ -29,12 +29,12 @@ fn check_or_assert_impl(args: Args) -> proc_macro2::TokenStream {
 
 fn check_binary_op(macro_name: syn::Expr, expr: syn::ExprBinary, format_args: Option<FormatArgs>) -> proc_macro2::TokenStream {
 	match expr.op {
-		syn::BinOp::Eq(_)  => (),
-		syn::BinOp::Lt(_)  => (),
-		syn::BinOp::Le(_)  => (),
-		syn::BinOp::Ne(_)  => (),
-		syn::BinOp::Ge(_)  => (),
-		syn::BinOp::Gt(_)  => (),
+		syn::BinOp::Eq(_) => (),
+		syn::BinOp::Lt(_) => (),
+		syn::BinOp::Le(_) => (),
+		syn::BinOp::Ne(_) => (),
+		syn::BinOp::Ge(_) => (),
+		syn::BinOp::Gt(_) => (),
 		_ => return check_bool_expr(macro_name, syn::Expr::Binary(expr), format_args),
 	};
 
@@ -108,8 +108,14 @@ fn check_bool_expr(macro_name: syn::Expr, expr: syn::Expr, format_args: Option<F
 	}
 }
 
-fn check_let_expr(macro_name: syn::Expr,expr: syn::ExprLet, format_args: Option<FormatArgs>) -> proc_macro2::TokenStream {
-	let syn::ExprLet { pat, expr, let_token, eq_token, .. } = expr;
+fn check_let_expr(macro_name: syn::Expr, expr: syn::ExprLet, format_args: Option<FormatArgs>) -> proc_macro2::TokenStream {
+	let syn::ExprLet {
+		pat,
+		expr,
+		let_token,
+		eq_token,
+		..
+	} = expr;
 
 	let pat_str = spanned_to_string(&pat);
 	let expr_str = spanned_to_string(&expr);
@@ -165,7 +171,7 @@ struct Args {
 impl syn::parse::Parse for Args {
 	fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
 		let macro_name = input.parse()?;
-		let _comma : syn::token::Comma = input.parse()?;
+		let _comma: syn::token::Comma = input.parse()?;
 		let expr = input.parse()?;
 		let format_args = if input.is_empty() {
 			FormatArgs::new()
@@ -175,6 +181,10 @@ impl syn::parse::Parse for Args {
 		};
 
 		let format_args = Some(format_args).filter(|x| !x.is_empty());
-		Ok(Self { macro_name, expr, format_args })
+		Ok(Self {
+			macro_name,
+			expr,
+			format_args,
+		})
 	}
 }
