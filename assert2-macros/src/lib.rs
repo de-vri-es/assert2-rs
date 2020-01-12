@@ -1,5 +1,8 @@
 #![feature(proc_macro_span)]
 
+//! This macro contains only private procedural macros.
+//! See the documentation for [`assert2`](https://docs.rs/assert2/) for the public API.
+
 extern crate proc_macro;
 
 use proc_macro::TokenStream;
@@ -11,6 +14,7 @@ use syn::spanned::Spanned;
 type FormatArgs = Punctuated<syn::Expr, syn::token::Comma>;
 
 #[proc_macro_hack]
+#[doc(hidden)]
 pub fn check_impl(tokens: TokenStream) -> TokenStream {
 	check_or_assert_impl(syn::parse_macro_input!(tokens)).into()
 }
