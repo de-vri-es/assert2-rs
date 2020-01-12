@@ -1,3 +1,6 @@
+v0.1.1:
+  * Synchronize README with library documentation.
+
 v0.1.0:
   * Fully compatible with Rust stable.
   * Only use `proc_macro_span` on nightly.
