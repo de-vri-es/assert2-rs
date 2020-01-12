@@ -96,12 +96,11 @@ pub struct MatchExpr<'a, Value> {
 
 #[rustfmt::skip]
 fn write_assertion_failed(f: &mut Formatter, file: &str, line: u32, column: u32) -> std::fmt::Result {
-	write!(f, "{msg} at {file}{colon}{line}{colon}{column}:",
+	write!(f, "{msg} at {file}:{line}:{column}:",
 		msg    = Paint::red("Assertion failed").bold(),
 		file   = Paint::default(file).bold(),
 		line   = line,
 		column = column,
-		colon  = Paint::blue(":"),
 	)
 }
 
@@ -117,7 +116,7 @@ impl<Left: Debug, Right: Debug> Display for BinaryOp<'_, Left, Right> {
 			op    = Paint::blue(self.operator).bold(),
 			right = Paint::yellow(self.right_expr),
 		)?;
-		write!(f, "\n{}", Paint::default("with expansion:").bold())?;
+		write!(f, "\nwith expansion:")?;
 		write!(f, "\n  {left:?} {op} {right:?}",
 			left  = Paint::cyan(self.left),
 			op    = Paint::blue(self.operator).bold(),
@@ -137,7 +136,7 @@ impl<Value: Debug> Display for BooleanExpr<'_, Value> {
 			close = Paint::magenta(")"),
 			expr = Paint::cyan(self.expression),
 		)?;
-		write!(f, "\n{}", Paint::default("with expansion:").bold())?;
+		write!(f, "\nwith expansion:")?;
 		write!(f, "\n  {:?}", Paint::cyan(self.value))?;
 		write_custom_message(f, &self.custom_msg)
 	}
@@ -156,19 +155,15 @@ impl<Value: Debug> Display for MatchExpr<'_, Value> {
 			eq    = Paint::blue("=").bold(),
 			expr  = Paint::yellow(self.expression),
 		)?;
-		write!(f, "\n{}", Paint::default("with expansion:").bold())?;
+		write!(f, "\nwith expansion:")?;
 		write!(f, "\n  {:?}", Paint::yellow(self.value))?;
 		write_custom_message(f, &self.custom_msg)
 	}
 }
 
-#[rustfmt::skip]
 fn write_custom_message(f: &mut Formatter, msg: &Option<std::fmt::Arguments>) -> std::fmt::Result {
 	if let Some(msg) = msg {
-		write!(f, "\n{prefix}\n  {msg}",
-			prefix = Paint::default("with message").bold(),
-			msg    = Paint::default(msg),
-		)
+		write!(f, "\nwith message:\n  {}", Paint::default(msg).bold())
 	} else {
 		Ok(())
 	}
