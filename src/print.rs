@@ -1,4 +1,3 @@
-
 use std::os::raw::c_int;
 use yansi::Paint;
 
@@ -95,6 +94,7 @@ pub struct MatchExpr<'a, Value> {
 	pub column: u32,
 }
 
+#[rustfmt::skip]
 fn write_assertion_failed(f: &mut Formatter, file: &str, line: u32, column: u32) -> std::fmt::Result {
 	write!(f, "{msg} at {file}{colon}{line}{colon}{column}:",
 		msg    = Paint::red("Assertion failed").bold(),
@@ -105,6 +105,7 @@ fn write_assertion_failed(f: &mut Formatter, file: &str, line: u32, column: u32)
 	)
 }
 
+#[rustfmt::skip]
 impl<Left: Debug, Right: Debug> Display for BinaryOp<'_, Left, Right> {
 	fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
 		write_assertion_failed(f, self.file, self.line, self.column)?;
@@ -126,7 +127,7 @@ impl<Left: Debug, Right: Debug> Display for BinaryOp<'_, Left, Right> {
 	}
 }
 
-
+#[rustfmt::skip]
 impl<Value: Debug> Display for BooleanExpr<'_, Value> {
 	fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
 		write_assertion_failed(f, self.file, self.line, self.column)?;
@@ -142,6 +143,7 @@ impl<Value: Debug> Display for BooleanExpr<'_, Value> {
 	}
 }
 
+#[rustfmt::skip]
 impl<Value: Debug> Display for MatchExpr<'_, Value> {
 	fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
 		write_assertion_failed(f, self.file, self.line, self.column)?;
@@ -160,6 +162,7 @@ impl<Value: Debug> Display for MatchExpr<'_, Value> {
 	}
 }
 
+#[rustfmt::skip]
 fn write_custom_message(f: &mut Formatter, msg: &Option<std::fmt::Arguments>) -> std::fmt::Result {
 	if let Some(msg) = msg {
 		write!(f, "\n{prefix}\n  {msg}",

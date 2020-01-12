@@ -1,5 +1,5 @@
-use assert2::check;
 use assert2::assert;
+use assert2::check;
 
 #[test]
 fn check_pass() {
@@ -62,13 +62,13 @@ fn debug_refs() {
 	// These tests are important because we use auto-deref specialization
 	// to support non-debug types.
 	check!(&1 == &1);
-	check!(& &1 == & &1);
-	check!(& & & & & & &1 == & & & & & & &1);
+	check!(&&1 == &&1);
+	check!(&&&&&&&1 == &&&&&&&1);
 	check!(let 10 = &10);
 	check!(let 10 = & &10);
 	assert!(&1 == &1);
-	assert!(& &1 == & &1);
-	assert!(& & & & & & &1 == & & & & & & &1);
+	assert!(&&1 == &&1);
+	assert!(&&&&&&&1 == &&&&&&&1);
 	assert!(let 10 = &10);
 	assert!(let 10 = & &10);
 }
@@ -79,13 +79,13 @@ fn non_debug_refs() {
 	// These tests are important because we use auto-deref specialization
 	// to support non-debug types.
 	check!(&I(1) == &I(1));
-	check!(& &I(1) == & &I(1));
-	check!(& & & & & & &I(1) == & & & & & & &I(1));
+	check!(&&I(1) == &&I(1));
+	check!(&&&&&&&I(1) == &&&&&&&I(1));
 	check!(let I(10) = &I(10));
 	check!(let I(10) = & &I(10));
 	assert!(&I(1) == &I(1));
-	assert!(& &I(1) == & &I(1));
-	assert!(& & & & & & &I(1) == & & & & & & &I(1));
+	assert!(&&I(1) == &&I(1));
+	assert!(&&&&&&&I(1) == &&&&&&&I(1));
 	assert!(let I(10) = &I(10));
 	assert!(let I(10) = & &I(10));
 }
