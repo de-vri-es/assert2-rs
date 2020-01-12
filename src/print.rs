@@ -1,3 +1,4 @@
+
 use std::os::raw::c_int;
 use yansi::Paint;
 
@@ -94,9 +95,9 @@ pub struct MatchExpr<'a, Value> {
 	pub column: u32,
 }
 
-fn write_assertion_failed(f: &mut Formatter, macro_name: &str, file: &str, line: u32, column: u32) -> std::fmt::Result {
+fn write_assertion_failed(f: &mut Formatter, file: &str, line: u32, column: u32) -> std::fmt::Result {
 	write!(f, "{msg} at {file}{colon}{line}{colon}{column}:",
-		msg    = Paint::red(format_args!("Failed {}", macro_name)).bold(),
+		msg    = Paint::red("Assertion failed").bold(),
 		file   = Paint::default(file).bold(),
 		line   = line,
 		column = column,
@@ -106,8 +107,11 @@ fn write_assertion_failed(f: &mut Formatter, macro_name: &str, file: &str, line:
 
 impl<Left: Debug, Right: Debug> Display for BinaryOp<'_, Left, Right> {
 	fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-		write_assertion_failed(f, self.macro_name, self.file, self.line, self.column)?;
-		write!(f, "\n  {left} {op} {right}",
+		write_assertion_failed(f, self.file, self.line, self.column)?;
+		write!(f, "\n  {name}{open} {left} {op} {right} {close}",
+			name  = Paint::magenta(self.macro_name),
+			open  = Paint::magenta("!("),
+			close = Paint::magenta(")"),
 			left  = Paint::cyan(self.left_expr),
 			op    = Paint::blue(self.operator).bold(),
 			right = Paint::yellow(self.right_expr),
@@ -125,8 +129,13 @@ impl<Left: Debug, Right: Debug> Display for BinaryOp<'_, Left, Right> {
 
 impl<Value: Debug> Display for BooleanExpr<'_, Value> {
 	fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-		write_assertion_failed(f, self.macro_name, self.file, self.line, self.column)?;
-		write!(f, "\n  {}", Paint::cyan(self.expression))?;
+		write_assertion_failed(f, self.file, self.line, self.column)?;
+		write!(f, "\n  {name}{open} {expr} {close}",
+			name  = Paint::magenta(self.macro_name),
+			open  = Paint::magenta("!("),
+			close = Paint::magenta(")"),
+			expr = Paint::cyan(self.expression),
+		)?;
 		write!(f, "\n{}", Paint::default("with expansion:").bold())?;
 		write!(f, "\n  {:?}", Paint::cyan(self.value))?;
 		write_custom_message(f, &self.custom_msg)
@@ -135,8 +144,11 @@ impl<Value: Debug> Display for BooleanExpr<'_, Value> {
 
 impl<Value: Debug> Display for MatchExpr<'_, Value> {
 	fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-		write_assertion_failed(f, self.macro_name, self.file, self.line, self.column)?;
-		write!(f, "\n  {let_} {pat} {eq} {expr}",
+		write_assertion_failed(f, self.file, self.line, self.column)?;
+		write!(f, "\n  {name}{open} {let_} {pat} {eq} {expr} {close}",
+			name  = Paint::magenta(self.macro_name),
+			open  = Paint::magenta("!("),
+			close = Paint::magenta(")"),
 			let_  = Paint::blue("let").bold(),
 			pat   = Paint::cyan(self.pattern),
 			eq    = Paint::blue("=").bold(),

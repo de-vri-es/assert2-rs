@@ -87,7 +87,7 @@ pub use assert2_macros::check_impl;
 #[macro_export]
 macro_rules! assert {
 	($($tokens:tt)*) => {
-		if let Err(()) = ::assert2::check_impl!("assert!()", $($tokens)*) {
+		if let Err(()) = ::assert2::check_impl!("assert", $($tokens)*) {
 			eprintln!();
 			panic!("assertion failed");
 		}
@@ -120,7 +120,7 @@ macro_rules! assert {
 #[macro_export]
 macro_rules! check {
 	($($tokens:tt)*) => {
-		let _guard = match ::assert2::check_impl!("check!()", $($tokens)*) {
+		let _guard = match ::assert2::check_impl!("check", $($tokens)*) {
 			Ok(_) => None,
 			Err(_) => {
 				eprintln!();
