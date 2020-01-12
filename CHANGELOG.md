@@ -1,3 +1,8 @@
+v0.1.0:
+  * Fully compatible with Rust stable.
+  * Only use `proc_macro_span` on nightly.
+  * Tweak colors in output.
+
 v0.0.9:
   * Use `proc-macro-hack` to avoid `feature(proc_macro_hygiene)`.
   * Use auto-deref specialization to avoid `feature(proc_macro_hygiene)`.
