@@ -18,3 +18,6 @@ proc-macro-hack = "0.5.11"
 proc-macro2 = "1.0.7"
 quote = "1.0.2"
 syn = { version = "1.0.13", features = ["full"] }
+
+[build-dependencies]
+rustc_version = "0.2.3"

@@ -1,4 +1,4 @@
-#![feature(proc_macro_span)]
+#![cfg_attr(nightly, feature(proc_macro_span))]
 
 //! This macro contains only private procedural macros.
 //! See the documentation for [`assert2`](https://docs.rs/assert2/) for the public API.
@@ -9,7 +9,6 @@ use proc_macro::TokenStream;
 use proc_macro_hack::proc_macro_hack;
 use quote::quote;
 use syn::punctuated::Punctuated;
-use syn::spanned::Spanned;
 
 type FormatArgs = Punctuated<syn::Expr, syn::token::Comma>;
 
@@ -146,7 +145,14 @@ fn check_let_expr(macro_name: syn::Expr,expr: syn::ExprLet, format_args: Option<
 }
 
 fn spanned_to_string<T: quote::ToTokens + ?Sized>(node: &T) -> String {
-	node.span().unwrap().source_text().unwrap_or_else(|| node.to_token_stream().to_string())
+	#[cfg(nightly)]
+	{
+		use syn::spanned::Spanned;
+		if let Some(s) = node.span().unwrap().source_text() {
+			return s;
+		}
+	}
+	node.to_token_stream().to_string()
 }
 
 struct Args {
