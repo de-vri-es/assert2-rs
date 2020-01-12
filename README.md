@@ -2,9 +2,6 @@
 
 All-purpose [`assert!(...)`](https://docs.rs/assert2/latest/assert2/macro.assert.html) and [`check!(...)`](https://docs.rs/assert2/latest/assert2/macro.check.html) macros, inspired by [Catch2](https://github.com/catchorg/Catch2).
 
-This crate is currently a work in progress.
-It relies on a nightly compiler with the `proc_macro_span` features.
-
 ## Why these macros?
 
 These macros offer some benefits over the assertions from the standard library:
@@ -51,6 +48,12 @@ This allows you to run multiple checks and can help to determine the reason of a
 Currently, `check` uses a scope guard to delay the panic until the current scope ends.
 Ideally, `check` doesn't panic at all, but only signals that a test case has failed.
 If this becomes possible in the future, the `check` macro will change, so **you should not rely on `check` to panic**.
+
+## Difference between stable and nightly.
+If available, the crate uses the `proc_macro_span` feature to get the original source code.
+On stable and beta, it falls back to stringifying the expression.
+This makes the output a bit more readable on nightly,
+but the differences are limited to the displayed expression.
 
 ## Controlling colored output.
 
