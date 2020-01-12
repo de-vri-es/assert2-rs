@@ -56,6 +56,40 @@ fn assert_non_debug() {
 	assert!(let I(10) = I(10), "{}", "rust broke",);
 }
 
+#[test]
+fn debug_refs() {
+	// Also check that references work.
+	// These tests are important because we use auto-deref specialization
+	// to support non-debug types.
+	check!(&1 == &1);
+	check!(& &1 == & &1);
+	check!(& & & & & & &1 == & & & & & & &1);
+	check!(let 10 = &10);
+	check!(let 10 = & &10);
+	assert!(&1 == &1);
+	assert!(& &1 == & &1);
+	assert!(& & & & & & &1 == & & & & & & &1);
+	assert!(let 10 = &10);
+	assert!(let 10 = & &10);
+}
+
+#[test]
+fn non_debug_refs() {
+	// Also check that references work.
+	// These tests are important because we use auto-deref specialization
+	// to support non-debug types.
+	check!(&I(1) == &I(1));
+	check!(& &I(1) == & &I(1));
+	check!(& & & & & & &I(1) == & & & & & & &I(1));
+	check!(let I(10) = &I(10));
+	check!(let I(10) = & &I(10));
+	assert!(&I(1) == &I(1));
+	assert!(& &I(1) == & &I(1));
+	assert!(& & & & & & &I(1) == & & & & & & &I(1));
+	assert!(let I(10) = &I(10));
+	assert!(let I(10) = & &I(10));
+}
+
 macro_rules! test_panic {
 	($name:ident, $($expr:tt)*) => {
 		#[test]

@@ -52,8 +52,8 @@ fn check_binary_op(macro_name: syn::Expr, expr: syn::ExprBinary, format_args: Op
 			if !(left #op right) {
 				use ::assert2::print::Diagnostic;
 				use ::assert2::maybe_debug::{IsDebug, IsMaybeNotDebug};
-				let left = (&left).__assert2_wrap_debug();
-				let right = (&right).__assert2_wrap_debug();
+				let left = (&&::assert2::maybe_debug::Wrap(&left)).__assert2_maybe_debug().wrap(&left);
+				let right =(&& ::assert2::maybe_debug::Wrap(&right)).__assert2_maybe_debug().wrap(&right);
 
 				::assert2::print::BinaryOp {
 					macro_name: #macro_name,
@@ -88,8 +88,6 @@ fn check_bool_expr(macro_name: syn::Expr, expr: syn::Expr, format_args: Option<F
 			let value: bool = #expr;
 			if !value {
 				use ::assert2::print::Diagnostic;
-				use ::assert2::maybe_debug::{IsDebug, IsMaybeNotDebug};
-				let value = (&value).__assert2_wrap_debug();
 				::assert2::print::BooleanExpr {
 					macro_name: #macro_name,
 					value: &value,
@@ -126,7 +124,7 @@ fn check_let_expr(macro_name: syn::Expr,expr: syn::ExprLet, format_args: Option<
 			} else {
 				use ::assert2::print::Diagnostic;
 				use ::assert2::maybe_debug::{IsDebug, IsMaybeNotDebug};
-				let value = (&value).__assert2_wrap_debug();
+				let value = (&&::assert2::maybe_debug::Wrap(&value)).__assert2_maybe_debug().wrap(&value);
 				::assert2::print::MatchExpr {
 					macro_name: #macro_name,
 					value: &value,
