@@ -3,7 +3,10 @@ name = "assert2-macros"
 description = "procedural macros for assert2"
 version = "0.0.9"
 license = "BSD-2-Clause"
-authors = ["Maarten de Vries <maarten@de-vri.es>"]
+authors = [
+	"Maarten de Vries <maarten@de-vri.es>",
+	"Mara Bos <m-ou.se@m-ou.se>",
+]
 
 edition = "2018"
 
