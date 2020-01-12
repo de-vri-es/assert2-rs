@@ -22,7 +22,7 @@
 //! check!(6 + 1 <= 2 * 3);
 //! ```
 //!
-//! ![Assertion error](https://github.com/de-vri-es/assert2-rs/raw/406f0d065e56db6e3f94c6e2d34b0f2c5b8f0f9f/binary-operator.png)
+//! ![Assertion error](https://github.com/de-vri-es/assert2-rs/raw/2db44c46e4580ec87d2881a698815e1ec5fcdf3f/binary-operator.png)
 //!
 //! ----------
 //!
@@ -31,7 +31,7 @@
 //! check!(true && false);
 //! ```
 //!
-//! ![Assertion error](https://github.com/de-vri-es/assert2-rs/raw/406f0d065e56db6e3f94c6e2d34b0f2c5b8f0f9f/boolean-expression.png)
+//! ![Assertion error](https://github.com/de-vri-es/assert2-rs/raw/2db44c46e4580ec87d2881a698815e1ec5fcdf3f/boolean-expression.png)
 //!
 //! ----------
 //!
@@ -41,7 +41,7 @@
 //! check!(let Ok(_) = File::open("/non/existing/file"));
 //! ```
 //!
-//! ![Assertion error](https://github.com/de-vri-es/assert2-rs/raw/406f0d065e56db6e3f94c6e2d34b0f2c5b8f0f9f/pattern-match.png)
+//! ![Assertion error](https://github.com/de-vri-es/assert2-rs/raw/2db44c46e4580ec87d2881a698815e1ec5fcdf3f/pattern-match.png)
 //!
 //! # `assert` vs `check`
 //! The crate provides two macros: `check!(...)` and `assert!(...)`.
