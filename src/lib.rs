@@ -52,6 +52,7 @@
 //! Currently, `check` uses a scope guard to delay the panic until the current scope ends.
 //! Ideally, `check` doesn't panic at all, but only signals that a test case has failed.
 //! If this becomes possible in the future, the `check` macro will change, so **you should not rely on `check` to panic**.
+//! You may safely use both macros outside of test cases though.
 //!
 //! # Difference between stable and nightly.
 //! If available, the crate uses the `proc_macro_span` feature to get the original source code.
@@ -112,6 +113,7 @@ macro_rules! assert {
 /// Currently, this macro uses a scope guard to delay the panic.
 /// However, this may change in the future if there is a way to signal a test failure without panicking.
 /// **Do not rely on `check!()` to panic**.
+/// You may safely use the macro outside of test cases though.
 ///
 /// # Custom messages
 /// You can pass additional arguments to the macro.
