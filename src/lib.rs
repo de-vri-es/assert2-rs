@@ -90,7 +90,6 @@ pub use assert2_macros::check_impl;
 macro_rules! assert {
 	($($tokens:tt)*) => {
 		if let Err(()) = ::assert2::check_impl!("assert", $($tokens)*) {
-			eprintln!();
 			panic!("assertion failed");
 		}
 	}
@@ -125,7 +124,6 @@ macro_rules! check {
 		let _guard = match ::assert2::check_impl!("check", $($tokens)*) {
 			Ok(_) => None,
 			Err(_) => {
-				eprintln!();
 				Some(::assert2::FailGuard(|| panic!("check failed")))
 			},
 		};

@@ -2,8 +2,6 @@ use std::os::raw::c_int;
 use yansi::Paint;
 
 use std::fmt::Debug;
-use std::fmt::Display;
-use std::fmt::Formatter;
 
 extern "C" {
 	fn isatty(fd: c_int) -> c_int;
@@ -49,122 +47,105 @@ fn set_color() {
 	}
 }
 
-pub trait Diagnostic: Display {
-	fn print(&self) {
-		set_color();
-		eprintln!("{}", self);
-	}
+pub struct FailedCheck<'a, T> {
+	pub macro_name: &'a str,
+	pub file: &'a str,
+	pub line: u32,
+	pub column: u32,
+	pub custom_msg: Option<std::fmt::Arguments<'a>>,
+	pub expression: T,
 }
 
-impl<Left: Debug, Right: Debug> Diagnostic for BinaryOp<'_, Left, Right> {}
-impl<Value: Debug> Diagnostic for BooleanExpr<'_, Value> {}
-impl<Value: Debug> Diagnostic for MatchExpr<'_, Value> {}
+pub trait CheckExpression {
+	fn print_expression(&self);
+	fn print_expansion(&self);
+}
 
 pub struct BinaryOp<'a, Left, Right> {
-	pub macro_name: &'a str,
 	pub left: &'a Left,
 	pub right: &'a Right,
 	pub operator: &'a str,
 	pub left_expr: &'a str,
 	pub right_expr: &'a str,
-	pub custom_msg: Option<std::fmt::Arguments<'a>>,
-	pub file: &'a str,
-	pub line: u32,
-	pub column: u32,
 }
 
-pub struct BooleanExpr<'a, Value> {
-	pub macro_name: &'a str,
-	pub value: &'a Value,
+pub struct BooleanExpr<'a> {
 	pub expression: &'a str,
-	pub custom_msg: Option<std::fmt::Arguments<'a>>,
-	pub file: &'a str,
-	pub line: u32,
-	pub column: u32,
 }
 
 pub struct MatchExpr<'a, Value> {
-	pub macro_name: &'a str,
 	pub value: &'a Value,
 	pub pattern: &'a str,
 	pub expression: &'a str,
-	pub custom_msg: Option<std::fmt::Arguments<'a>>,
-	pub file: &'a str,
-	pub line: u32,
-	pub column: u32,
+}
+
+impl<'a, T: CheckExpression> FailedCheck<'a, T> {
+	#[rustfmt::skip]
+	pub fn print(&self) {
+		set_color();
+		eprintln!("{msg} at {file}:{line}:{column}:",
+			msg    = Paint::red("Assertion failed").bold(),
+			file   = Paint::default(self.file).bold(),
+			line   = self.line,
+			column = self.column,
+		);
+		eprint!("  {name}{open} ",
+			name = Paint::magenta(self.macro_name),
+			open = Paint::magenta("!("),
+		);
+		self.expression.print_expression();
+		eprintln!(" {}", Paint::magenta(")"));
+		eprintln!("with expansion:");
+		eprint!("  ");
+		self.expression.print_expansion();
+		eprintln!();
+		if let Some(msg) = self.custom_msg {
+			eprintln!("with message:");
+			eprintln!("  {}", Paint::default(msg).bold());
+		}
+		eprintln!();
+	}
 }
 
 #[rustfmt::skip]
-fn write_assertion_failed(f: &mut Formatter, file: &str, line: u32, column: u32) -> std::fmt::Result {
-	write!(f, "{msg} at {file}:{line}:{column}:",
-		msg    = Paint::red("Assertion failed").bold(),
-		file   = Paint::default(file).bold(),
-		line   = line,
-		column = column,
-	)
-}
-
-#[rustfmt::skip]
-impl<Left: Debug, Right: Debug> Display for BinaryOp<'_, Left, Right> {
-	fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-		write_assertion_failed(f, self.file, self.line, self.column)?;
-		write!(f, "\n  {name}{open} {left} {op} {right} {close}",
-			name  = Paint::magenta(self.macro_name),
-			open  = Paint::magenta("!("),
-			close = Paint::magenta(")"),
+impl<Left: Debug, Right: Debug> CheckExpression for BinaryOp<'_, Left, Right> {
+	fn print_expression(&self) {
+		eprint!("{left} {op} {right}",
 			left  = Paint::cyan(self.left_expr),
 			op    = Paint::blue(self.operator).bold(),
 			right = Paint::yellow(self.right_expr),
-		)?;
-		write!(f, "\nwith expansion:")?;
-		write!(f, "\n  {left:?} {op} {right:?}",
+		);
+	}
+	fn print_expansion(&self) {
+		eprint!("{left:?} {op} {right:?}",
 			left  = Paint::cyan(self.left),
 			op    = Paint::blue(self.operator).bold(),
 			right = Paint::yellow(self.right),
-		)?;
-		write_custom_message(f, &self.custom_msg)
+		);
 	}
 }
 
 #[rustfmt::skip]
-impl<Value: Debug> Display for BooleanExpr<'_, Value> {
-	fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-		write_assertion_failed(f, self.file, self.line, self.column)?;
-		write!(f, "\n  {name}{open} {expr} {close}",
-			name  = Paint::magenta(self.macro_name),
-			open  = Paint::magenta("!("),
-			close = Paint::magenta(")"),
-			expr = Paint::cyan(self.expression),
-		)?;
-		write!(f, "\nwith expansion:")?;
-		write!(f, "\n  {:?}", Paint::cyan(self.value))?;
-		write_custom_message(f, &self.custom_msg)
+impl CheckExpression for BooleanExpr<'_> {
+	fn print_expression(&self) {
+		eprint!("{}", Paint::cyan(self.expression));
+	}
+	fn print_expansion(&self) {
+		eprint!("{:?}", Paint::cyan(false));
 	}
 }
 
 #[rustfmt::skip]
-impl<Value: Debug> Display for MatchExpr<'_, Value> {
-	fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-		write_assertion_failed(f, self.file, self.line, self.column)?;
-		write!(f, "\n  {name}{open} {let_} {pat} {eq} {expr} {close}",
-			name  = Paint::magenta(self.macro_name),
-			open  = Paint::magenta("!("),
-			close = Paint::magenta(")"),
-			let_  = Paint::blue("let").bold(),
-			pat   = Paint::cyan(self.pattern),
-			eq    = Paint::blue("=").bold(),
-			expr  = Paint::yellow(self.expression),
-		)?;
-		write!(f, "\nwith expansion:")?;
-		write!(f, "\n  {:?}", Paint::yellow(self.value))?;
-		write_custom_message(f, &self.custom_msg)
+impl<Value: Debug> CheckExpression for MatchExpr<'_, Value> {
+	fn print_expression(&self) {
+		eprint!("{let_} {pat} {eq} {expr}",
+			let_ = Paint::blue("let").bold(),
+			pat  = Paint::cyan(self.pattern),
+			eq   = Paint::blue("=").bold(),
+			expr = Paint::yellow(self.expression),
+		);
 	}
-}
-
-fn write_custom_message(f: &mut Formatter, msg: &Option<std::fmt::Arguments>) -> std::fmt::Result {
-	if let Some(msg) = msg {
-		write!(f, "\nwith message:\n  {}", Paint::default(msg).bold())
-	} else {
-		Ok(())
+	fn print_expansion(&self) {
+		eprint!("{:?}", Paint::yellow(self.value));
 	}
 }
