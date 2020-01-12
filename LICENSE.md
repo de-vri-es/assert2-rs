@@ -2,8 +2,6 @@ BSD 2-Clause License
 
 Copyright (c) 2020, Maarten de Vries <maarten@de-vri.es>
 
-This license applies to the Rust bindings, not to the Aravis library itself.
-
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
 
