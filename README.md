@@ -41,14 +41,15 @@ check!(let Ok(_) = File::open("/non/existing/file"));
 
 ## `assert` vs `check`
 The crate provides two macros: `check!(...)` and `assert!(...)`.
-The main difference is that `check` doesn't immediately panic.
+The main difference is that `check` is really intended for test cases and doesn't immediately panic.
 Instead, it will print the assertion error and fail the test.
 This allows you to run multiple checks and can help to determine the reason of a test failure more easily.
+The `assert` macro on the other hand simply prints the error and panics,
+and can be used outside of tests just as well.
 
 Currently, `check` uses a scope guard to delay the panic until the current scope ends.
 Ideally, `check` doesn't panic at all, but only signals that a test case has failed.
 If this becomes possible in the future, the `check` macro will change, so **you should not rely on `check` to panic**.
-You may safely use both macros outside of test cases though.
 
 ## Difference between stable and nightly.
 If available, the crate uses the `proc_macro_span` feature to get the original source code.
