@@ -39,12 +39,3 @@ impl<'a, T> std::fmt::Debug for MaybeNotDebug<'a, T> {
 		write!(f, "<object of type {}>", std::any::type_name::<T>())
 	}
 }
-
-#[macro_export]
-macro_rules! wrap {
-	(&$var:ident) => {
-		use ::assert2::maybe_debug::{IsDebug, IsMaybeNotDebug};
-		let wrap = ::assert2::maybe_debug::Wrap($var);
-		(&&wrap).__assert2_maybe_debug().wrap(wrap)
-	}
-}
