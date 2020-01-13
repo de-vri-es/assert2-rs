@@ -14,11 +14,9 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: build
-          toolchain: nightly
           args: --release --all-features --color=always
       - name: Test
         uses: actions-rs/cargo@v1
         with:
           command: test
-          toolchain: nightly
           args: --release --all-features --color=always
