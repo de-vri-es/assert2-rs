@@ -41,6 +41,15 @@ fn debug_assert_pass() {
 	debug_assert!(let Ok(10) = Result::<i32, i32>::Ok(10), "{}", "rust broke",);
 }
 
+#[test]
+fn assert_return_value() {
+	let x = assert!(let Some(#) = Some(10));
+	check!(x == 10);
+
+	let x = assert!(let (#, 2) = (1, 2));
+	check!(x == 1);
+}
+
 #[derive(Eq, PartialEq, Ord, PartialOrd)]
 struct I(i32);
 

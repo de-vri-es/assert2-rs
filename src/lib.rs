@@ -95,8 +95,9 @@ pub use assert2_macros::check_impl;
 #[macro_export]
 macro_rules! assert {
 	($($tokens:tt)*) => {
-		if let Err(()) = ::assert2::check_impl!("assert", $($tokens)*) {
-			panic!("assertion failed");
+		match ::assert2::check_impl!("assert", $($tokens)*) {
+			Ok(x) => x,
+			Err(()) => panic!("assertion failed"),
 		}
 	}
 }

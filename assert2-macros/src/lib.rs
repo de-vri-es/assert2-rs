@@ -12,19 +12,29 @@ use syn::punctuated::Punctuated;
 
 type FormatArgs = Punctuated<syn::Expr, syn::token::Comma>;
 
+mod let_placeholder;
+use let_placeholder::replace_let_placeholder;
+use let_placeholder::Placeholder;
+
 #[proc_macro_hack]
 #[doc(hidden)]
 pub fn check_impl(tokens: TokenStream) -> TokenStream {
-	check_or_assert_impl(syn::parse_macro_input!(tokens)).into()
+	match try_check_impl(tokens.into()) {
+		Ok(x) => x.into(),
+		Err(e) => e.to_compile_error().into(),
+	}
 }
 
 /// Real implementation for assert!() and check!().
-fn check_or_assert_impl(args: Args) -> proc_macro2::TokenStream {
-	match args.expr {
+fn try_check_impl(tokens: proc_macro::TokenStream) -> syn::Result<proc_macro2::TokenStream> {
+	let (tokens, placeholder) = replace_let_placeholder(tokens)?;
+	let args : Args = syn::parse2(tokens.into())?;
+
+	Ok(match args.expr {
 		syn::Expr::Binary(expr) => check_binary_op(args.macro_name, expr, args.format_args),
-		syn::Expr::Let(expr) => check_let_expr(args.macro_name, expr, args.format_args),
+		syn::Expr::Let(expr) => check_let_expr(args.macro_name, expr, args.format_args, placeholder),
 		expr => check_bool_expr(args.macro_name, expr, args.format_args),
-	}
+	})
 }
 
 fn check_binary_op(macro_name: syn::Expr, expr: syn::ExprBinary, format_args: Option<FormatArgs>) -> proc_macro2::TokenStream {
@@ -108,7 +118,12 @@ fn check_bool_expr(macro_name: syn::Expr, expr: syn::Expr, format_args: Option<F
 	}
 }
 
-fn check_let_expr(macro_name: syn::Expr, expr: syn::ExprLet, format_args: Option<FormatArgs>) -> proc_macro2::TokenStream {
+fn check_let_expr(
+	macro_name: syn::Expr,
+	expr: syn::ExprLet,
+	format_args: Option<FormatArgs>,
+	placeholder: Option<Placeholder>,
+) -> proc_macro2::TokenStream {
 	let syn::ExprLet {
 		pat,
 		expr,
@@ -125,11 +140,25 @@ fn check_let_expr(macro_name: syn::Expr, expr: syn::ExprLet, format_args: Option
 		None => quote!(None),
 	};
 
+	// Prepare the return value for the assertion.
+	// We do another pattern match here so we can consume `value`.
+	// If it fails, we unconditionally panic. But that should never happen.
+	let ret_val = placeholder.map(|placeholder| {
+		let replacement = proc_macro2::Ident::new(&placeholder.replacement.to_string(), placeholder.original.span().into());
+		quote!{
+			if #let_token #pat #eq_token value {
+				Ok(#replacement)
+			} else {
+				panic!("second pattern match failed, please report this at https://github.com/de-vri-es/assert2-rs/issues/new/");
+			}
+		}
+	}).unwrap_or(quote!(Ok(())));
+
 	quote! {
 		{
 			let value = #expr;
 			if #let_token #pat #eq_token &value {
-				Ok(())
+				#ret_val
 			} else {
 				use ::assert2::maybe_debug::{IsDebug, IsMaybeNotDebug};
 				let value = (&&::assert2::maybe_debug::Wrap(&value)).__assert2_maybe_debug().wrap(&value);
