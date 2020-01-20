@@ -1,6 +1,7 @@
 #![allow(clippy::needless_lifetimes)]
 
 //! All-purpose [`assert!(...)`](macro.assert.html) and [`check!(...)`](macro.check.html) macros, inspired by [Catch2](https://github.com/catchorg/Catch2).
+//! There is also a [`debug_assert!(...)`](macro.debug_assert.html) macro that is disabled on optimized builds by default.
 //!
 //! # Why these macros?
 //!
