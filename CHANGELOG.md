@@ -1,3 +1,6 @@
+v0.1.2:
+  * Add `debug_assert!(...)` for parity with the standard library.
+
 v0.1.1:
   * Synchronize README with library documentation.
 

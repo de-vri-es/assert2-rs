@@ -1,5 +1,6 @@
 use assert2::assert;
 use assert2::check;
+use assert2::debug_assert;
 
 #[test]
 fn check_pass() {
@@ -25,6 +26,19 @@ fn assert_pass() {
 	assert!(let Ok(10) = Result::<i32, i32>::Ok(10));
 	assert!(let Ok(10) = Result::<i32, i32>::Ok(10), "{}", "rust broke");
 	assert!(let Ok(10) = Result::<i32, i32>::Ok(10), "{}", "rust broke",);
+}
+
+#[test]
+fn debug_assert_pass() {
+	debug_assert!(1 == 1);
+	debug_assert!(1 == 1, "{}", "math broke");
+	debug_assert!(1 == 1, "{}", "math broke",);
+	debug_assert!(true && true);
+	debug_assert!(true && true, "{}", "logic broke");
+	debug_assert!(true && true, "{}", "logic broke",);
+	debug_assert!(let Ok(10) = Result::<i32, i32>::Ok(10));
+	debug_assert!(let Ok(10) = Result::<i32, i32>::Ok(10), "{}", "rust broke");
+	debug_assert!(let Ok(10) = Result::<i32, i32>::Ok(10), "{}", "rust broke",);
 }
 
 #[derive(Eq, PartialEq, Ord, PartialOrd)]

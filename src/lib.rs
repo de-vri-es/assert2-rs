@@ -135,6 +135,24 @@ macro_rules! check {
 	}
 }
 
+/// Assert that an expression evaluates to true or matches a pattern.
+///
+/// This macro supports the same checks as [`assert`](macro.assert.html), but they are only executed if debug assertions are enabled.
+///
+/// As with [`std::debug_assert`](https://doc.rust-lang.org/stable/std/macro.debug_assert.html),
+/// the expression is still type checked if debug assertions are disabled.
+///
+#[macro_export]
+macro_rules! debug_assert {
+	($($tokens:tt)*) => {
+		if ::core::cfg!(debug_assertions) {
+			if let Err(()) = ::assert2::check_impl!("debug_assert", $($tokens)*) {
+				panic!("assertion failed");
+			}
+		}
+	}
+}
+
 #[doc(hidden)]
 pub mod maybe_debug;
 
