@@ -18,8 +18,12 @@ categories = ["development-tools::debugging", "development-tools::testing"]
 
 [features]
 let-assert = ["assert2-macros/let-assert"]
+doc-cfg = []
 
 [dependencies]
 assert2-macros = { version = "=0.1.0", path = "assert2-macros" }
 proc-macro-hack = "0.5.11"
 yansi = "0.5.0"
+
+[package.metadata.docs.rs]
+all-features = true
