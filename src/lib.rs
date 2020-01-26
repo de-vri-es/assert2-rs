@@ -154,6 +154,14 @@ macro_rules! debug_assert {
 	}
 }
 
+#[cfg(feature = "let-assert")]
+#[macro_export]
+macro_rules! let_assert {
+	($($tokens:tt)*) => {
+		::assert2_macros::let_assert_impl!("let_assert", $($tokens)*);
+	}
+}
+
 #[doc(hidden)]
 pub mod maybe_debug;
 

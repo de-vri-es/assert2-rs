@@ -16,6 +16,9 @@ readme = "README.md"
 keywords = ["assert", "check", "test", "unit-test"]
 categories = ["development-tools::debugging", "development-tools::testing"]
 
+[features]
+let-assert = ["assert2-macros/let-assert"]
+
 [dependencies]
 assert2-macros = { version = "=0.1.0", path = "assert2-macros" }
 proc-macro-hack = "0.5.11"

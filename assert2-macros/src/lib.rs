@@ -18,6 +18,16 @@ pub fn check_impl(tokens: TokenStream) -> TokenStream {
 	check_or_assert_impl(syn::parse_macro_input!(tokens)).into()
 }
 
+#[cfg(feature = "let-assert")]
+mod let_assert;
+
+#[cfg(feature = "let-assert")]
+#[proc_macro]
+#[doc(hidden)]
+pub fn let_assert_impl(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
+	let_assert::let_assert_impl(syn::parse_macro_input!(tokens)).into()
+}
+
 /// Real implementation for assert!() and check!().
 fn check_or_assert_impl(args: Args) -> proc_macro2::TokenStream {
 	match args.expr {
