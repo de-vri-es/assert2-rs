@@ -59,18 +59,18 @@ pub fn let_assert_impl(args: Args) -> TokenStream {
 	}
 }
 
-#[derive(Default)]
-struct CollectPlaceholders {
-	placeholders: Vec<syn::Ident>,
-}
-
-impl<'a> syn::visit::Visit<'a> for CollectPlaceholders {
-	fn visit_pat_ident(&mut self, pat_ident: &'a syn::PatIdent) {
-		self.placeholders.push(pat_ident.ident.clone());
-	}
-}
-
 fn collect_placeholders(pat: &syn::Pat) -> Punctuated<syn::Ident, syn::token::Comma> {
+	#[derive(Default)]
+	struct CollectPlaceholders {
+		placeholders: Vec<syn::Ident>,
+	}
+
+	impl<'a> syn::visit::Visit<'a> for CollectPlaceholders {
+		fn visit_pat_ident(&mut self, pat_ident: &'a syn::PatIdent) {
+			self.placeholders.push(pat_ident.ident.clone());
+		}
+	}
+
 	use syn::visit::Visit;
 	let mut collector = CollectPlaceholders::default();
 	collector.visit_pat(pat);
