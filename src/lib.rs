@@ -65,7 +65,7 @@
 //! # The `let_assert!()` macro
 //! If you enable the `let-assert` feature of the crate,
 //! and the unstable `proc_macro_hygiene` feature,
-//! you can also use an additional macro: `let_assert!(...)`.
+//! you can also use an additional macro: [`let_assert!(...)`](macro.let_assert.html).
 //! This is very similar to an `assert` with a `let` statement,
 //! except that all placeholders will be made available as variables in the calling scope.
 //!
