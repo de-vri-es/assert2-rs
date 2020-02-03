@@ -150,6 +150,7 @@ fn check_let_expr(macro_name: syn::Expr, expr: syn::ExprLet, format_args: Option
 					column: column!(),
 					custom_msg: #custom_msg,
 					expression: ::assert2::print::MatchExpr {
+						print_let: true,
 						value: &value,
 						pattern: #pat_str,
 						expression: #expr_str,

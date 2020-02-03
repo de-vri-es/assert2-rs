@@ -47,6 +47,7 @@ pub fn let_assert_impl(args: Args) -> TokenStream {
 					column: column!(),
 					custom_msg: #custom_msg,
 					expression: ::assert2::print::MatchExpr {
+						print_let: false,
 						value: &value,
 						pattern: #pat_str,
 						expression: #expr_str,

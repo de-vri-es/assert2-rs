@@ -74,6 +74,7 @@ pub struct BooleanExpr<'a> {
 }
 
 pub struct MatchExpr<'a, Value> {
+	pub print_let: bool,
 	pub value: &'a Value,
 	pub pattern: &'a str,
 	pub expression: &'a str,
@@ -138,8 +139,10 @@ impl CheckExpression for BooleanExpr<'_> {
 #[rustfmt::skip]
 impl<Value: Debug> CheckExpression for MatchExpr<'_, Value> {
 	fn print_expression(&self) {
-		eprint!("{let_} {pat} {eq} {expr}",
-			let_ = Paint::blue("let").bold(),
+		if self.print_let {
+			eprint!("{} ", Paint::blue("let").bold());
+		}
+		eprint!("{pat} {eq} {expr}",
 			pat  = Paint::cyan(self.pattern),
 			eq   = Paint::blue("=").bold(),
 			expr = Paint::yellow(self.expression),
