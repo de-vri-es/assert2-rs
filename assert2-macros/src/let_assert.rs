@@ -24,18 +24,6 @@ pub fn let_assert_impl(args: Args) -> TokenStream {
 
 	let placeholders = collect_placeholders(&pattern);
 
-	let mut use_placeholders = TokenStream::new();
-	for placeholder in &placeholders {
-		use_placeholders.extend(quote! {
-			&#placeholder,
-		});
-	}
-	let use_placeholders = quote! {
-		let _ = (#use_placeholders);
-	};
-
-	let placeholders = puncuate_idents(placeholders);
-
 	let pat_str = spanned_to_string(&pattern);
 	let expr_str = spanned_to_string(&expression);
 	let custom_msg = match format_args {
@@ -46,13 +34,8 @@ pub fn let_assert_impl(args: Args) -> TokenStream {
 	quote! {
 		let (#placeholders) = {
 			let value = #expression;
-			if let #pattern #eq_token &value {
-				#use_placeholders
-				if let #pattern #eq_token value {
-					(#placeholders)
-				} else {
-					panic!("{}: second pattern match failed, please report this at https://github.com/de-vri-es/assert2-rs/issues/new/");
-				}
+			if let #pattern #eq_token value {
+				(#placeholders)
 			} else {
 				#[allow(unused)]
 				use ::assert2::maybe_debug::{IsDebug, IsMaybeNotDebug};
@@ -75,36 +58,22 @@ pub fn let_assert_impl(args: Args) -> TokenStream {
 	}
 }
 
-struct CollectPlaceholders<'a> {
-	placeholders: &'a mut Vec<syn::Ident>,
+#[derive(Default)]
+struct CollectPlaceholders {
+	placeholders: Vec<syn::Ident>,
 }
 
-impl<'a> CollectPlaceholders<'a> {
-	fn new(placeholders: &'a mut Vec<syn::Ident>) -> Self {
-		Self { placeholders }
-	}
-}
-
-impl<'a> syn::visit::Visit<'a> for CollectPlaceholders<'_> {
+impl<'a> syn::visit::Visit<'a> for CollectPlaceholders {
 	fn visit_pat_ident(&mut self, pat_ident: &'a syn::PatIdent) {
 		self.placeholders.push(pat_ident.ident.clone());
 	}
 }
 
-fn collect_placeholders(pat: &syn::Pat) -> Vec<syn::Ident> {
+fn collect_placeholders(pat: &syn::Pat) -> Punctuated<syn::Ident, syn::token::Comma> {
 	use syn::visit::Visit;
-	let mut placeholders = Vec::new();
-	let mut collector = CollectPlaceholders::new(&mut placeholders);
+	let mut collector = CollectPlaceholders::default();
 	collector.visit_pat(pat);
-	placeholders
-}
-
-fn puncuate_idents(input: impl IntoIterator<Item = syn::Ident>) -> Punctuated<syn::Ident, syn::token::Comma> {
-	let mut punctuated: Punctuated<syn::Ident, syn::token::Comma> = input.into_iter().collect();
-	if !punctuated.is_empty() {
-		punctuated.push_punct(syn::token::Comma::default());
-	}
-	punctuated
+	collector.placeholders.into_iter().collect()
 }
 
 impl syn::parse::Parse for Args {
