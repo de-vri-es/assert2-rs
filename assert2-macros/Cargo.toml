@@ -13,6 +13,9 @@ edition = "2018"
 repository = "https://github.com/de-vri-es/assert2-rs"
 documentation = "https://docs.rs/assert2"
 
+[features]
+let-assert = ["syn/visit"]
+
 [lib]
 proc-macro = true
 

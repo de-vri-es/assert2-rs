@@ -1,3 +1,4 @@
+#![cfg_attr(feature = "doc-cfg", feature(doc_cfg))]
 #![allow(clippy::needless_lifetimes)]
 
 //! All-purpose [`assert!(...)`](macro.assert.html) and [`check!(...)`](macro.check.html) macros, inspired by [Catch2](https://github.com/catchorg/Catch2).
@@ -59,8 +60,68 @@
 //! # Difference between stable and nightly.
 //! If available, the crate uses the `proc_macro_span` feature to get the original source code.
 //! On stable and beta, it falls back to stringifying the expression.
-//! This makes the output a bit more readable on nightly,
-//! but the differences are limited to the displayed expression.
+//! This makes the output a bit more readable on nightly.
+//!
+//! # The `let_assert!()` macro
+//! If you enable the `let-assert` feature of the crate,
+//! and the unstable `proc_macro_hygiene` feature,
+//! you can also use an additional macro: [`let_assert!(...)`](macro.let_assert.html).
+//! This is very similar to an `assert` with a `let` statement,
+//! except that all placeholders will be made available as variables in the calling scope.
+//!
+//! This allows you to run additional checks on the captured variables.
+//! For example:
+//!
+//! ```
+//! # // This may look weird, but it makes sures the code looks as it should on nightly,
+//! # // but and compiles into a NOP if the "let_assert" feature is off for stable.
+//! # #![cfg_attr(feature = "let_assert", feature(proc_macro_hygiene))]
+//! # #[cfg(feature = "let_assert")] {
+//! #![feature(proc_macro_hygiene)]
+//! # }
+//!
+//! # #[cfg(feature = "let_assert")]
+//! # fn main() {
+//! # use assert2::let_assert;
+//! # use assert2::check;
+//! # struct Foo {
+//! #  name: &'static str,
+//! # }
+//! # enum Error {
+//! #   InvalidName(InvalidNameError),
+//! # }
+//! # struct InvalidNameError {
+//! #   name: &'static str,
+//! # }
+//! # impl Foo {
+//! #   fn try_new(name: &'static str) -> Result<Self, Error> {
+//! #     if name == "bar" {
+//! #       Ok(Self { name })
+//! #     } else {
+//! #       Err(Error::InvalidName(InvalidNameError { name }))
+//! #     }
+//! #   }
+//! #   fn name(&self) -> &'static str {
+//! #     self.name
+//! #   }
+//! # }
+//! # impl InvalidNameError {
+//! #   fn name(&self) -> &'static str {
+//! #     self.name
+//! #   }
+//! #   fn to_string(&self) -> String {
+//! #     format!("invalid name: {}", self.name)
+//! #   }
+//! # }
+//! let_assert!(Ok(foo) = Foo::try_new("bar"));
+//! check!(foo.name() == "bar");
+//!
+//! let_assert!(Err(Error::InvalidName(e)) = Foo::try_new("bogus name"));
+//! check!(e.name() == "bogus name");
+//! check!(e.to_string() == "invalid name: bogus name");
+//! # }
+//! ```
+//!
 //!
 //! # Controlling colored output.
 //!
@@ -151,6 +212,69 @@ macro_rules! debug_assert {
 				panic!("assertion failed");
 			}
 		}
+	}
+}
+
+/// Assert that an expression matches a pattern.
+///
+/// This is very similar to `assert!(let pattern = expression)`,
+/// except that this macro makes all placeholders available in the calling scope.
+/// This can be used to assert a pattern match,
+/// and then run more checks on the captured variables.
+///
+/// This macro is only available if if the `let-assert` feature of the `assert2` crate is enabled,
+/// and it requires the `proc_macro_hygiene` rust feature to be enabled by the user of the macro.
+///
+/// For example:
+/// ```
+/// #![feature(proc_macro_hygiene)]
+///
+/// # use assert2::let_assert;
+/// # use assert2::check;
+/// # fn main() {
+/// # struct Foo {
+/// #  name: &'static str,
+/// # }
+/// # enum Error {
+/// #   InvalidName(InvalidNameError),
+/// # }
+/// # struct InvalidNameError {
+/// #   name: &'static str,
+/// # }
+/// # impl Foo {
+/// #   fn try_new(name: &'static str) -> Result<Self, Error> {
+/// #     if name == "bar" {
+/// #       Ok(Self { name })
+/// #     } else {
+/// #       Err(Error::InvalidName(InvalidNameError { name }))
+/// #     }
+/// #   }
+/// #   fn name(&self) -> &'static str {
+/// #     self.name
+/// #   }
+/// # }
+/// # impl InvalidNameError {
+/// #   fn name(&self) -> &'static str {
+/// #     self.name
+/// #   }
+/// #   fn to_string(&self) -> String {
+/// #     format!("invalid name: {}", self.name)
+/// #   }
+/// # }
+/// let_assert!(Ok(foo) = Foo::try_new("bar"));
+/// check!(foo.name() == "bar");
+///
+/// let_assert!(Err(Error::InvalidName(e)) = Foo::try_new("bogus name"));
+/// check!(e.name() == "bogus name");
+/// check!(e.to_string() == "invalid name: bogus name");
+/// # }
+/// ```
+#[cfg(feature = "let-assert")]
+#[cfg_attr(feature = "doc-cfg", doc(cfg(all(feature = "let-assert", proc_macro_hygiene))))]
+#[macro_export]
+macro_rules! let_assert {
+	($($tokens:tt)*) => {
+		::assert2_macros::let_assert_impl!("let_assert", $($tokens)*);
 	}
 }
 
