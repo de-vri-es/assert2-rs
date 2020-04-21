@@ -60,6 +60,9 @@ but the differences are limited to the displayed expression.
 
 ## Controlling colored output.
 
-You can force colored output on or off by setting the `CLICOLOR` environment variable.
-Set `CLICOLOR=1` to forcibly enable colors, or `CLICOLORS=0` to disable them.
-If the environment variable is unset or set to `auto`, output will be colored if it is going to a terminal.
+Colored output can be controlled using environment variables,
+as per the [clicolors spec](https://bixense.com/clicolors/):
+
+ * `CLICOLOR != 0`: ANSI colors are supported and should be used when the program isn't piped.
+ * `CLICOLOR == 0`: Don't output ANSI color escape codes.
+ * `CLICOLOR_FORCE != 0`: ANSI colors should be enabled no matter what.

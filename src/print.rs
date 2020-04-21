@@ -12,30 +12,12 @@ fn stderr_is_tty() -> bool {
 }
 
 fn should_color() -> bool {
-	// CLICOLOR not set? Check if stderr is a TTY.
-	let clicolor = match std::env::var_os("CLICOLOR") {
-		Some(x) => x,
-		None => return stderr_is_tty(),
-	};
-
-	// CLICOLOR not ascii? Disable colors.
-	let clicolor = match clicolor.to_str() {
-		Some(x) => x,
-		None => return false,
-	};
-
-	let force = false;
-	let force = force || clicolor.eq_ignore_ascii_case("yes");
-	let force = force || clicolor.eq_ignore_ascii_case("true");
-	let force = force || clicolor.eq_ignore_ascii_case("always");
-	let force = force || clicolor.eq_ignore_ascii_case("1");
-
-	if force {
-		true
-	} else if clicolor.eq_ignore_ascii_case("auto") {
-		stderr_is_tty()
-	} else {
+	if std::env::var_os("CLICOLOR").map(|x| x == "0").unwrap_or(false) {
 		false
+	} else if std::env::var_os("CLICOLOR_FORCE").map(|x| x != "0").unwrap_or(false) {
+		true
+	} else {
+		stderr_is_tty()
 	}
 }
 
