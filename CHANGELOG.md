@@ -1,3 +1,7 @@
+v0.2.0:
+  * Add feature-gated "let-assert" macro for nightly.
+  * Implement semi-standard CLICOLOR / CLICOLOR_FORCE standard correctly.
+
 v0.1.2:
   * Add `debug_assert!(...)` for parity with the standard library.
 
