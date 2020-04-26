@@ -1,3 +1,6 @@
+v0.2.1:
+  * Prevent `assert!(a == b)` from consuming `a` or `b`.
+
 v0.2.0:
   * Add feature-gated "let-assert" macro for nightly.
   * Implement semi-standard CLICOLOR / CLICOLOR_FORCE standard correctly.
