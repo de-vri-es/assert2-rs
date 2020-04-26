@@ -59,13 +59,11 @@ fn check_binary_op(macro_name: syn::Expr, expr: syn::ExprBinary, format_args: Op
 	};
 
 	quote! {
-		{
-			let left = #left;
-			let right = #right;
-			if !(left #op right) {
+		match (&(#left), &(#right)) {
+			(left, right) if !(left #op right) => {
 				use ::assert2::maybe_debug::{IsDebug, IsMaybeNotDebug};
-				let left = (&&::assert2::maybe_debug::Wrap(&left)).__assert2_maybe_debug().wrap(&left);
-				let right = (&& ::assert2::maybe_debug::Wrap(&right)).__assert2_maybe_debug().wrap(&right);
+				let left = (&&::assert2::maybe_debug::Wrap(left)).__assert2_maybe_debug().wrap(left);
+				let right = (&& ::assert2::maybe_debug::Wrap(right)).__assert2_maybe_debug().wrap(right);
 				::assert2::print::FailedCheck {
 					macro_name: #macro_name,
 					file: file!(),
@@ -81,9 +79,8 @@ fn check_binary_op(macro_name: syn::Expr, expr: syn::ExprBinary, format_args: Op
 					}
 				}.print();
 				Err(())
-			} else {
-				Ok(())
 			}
+			_ => Ok(()),
 		}
 	}
 }
@@ -97,9 +94,8 @@ fn check_bool_expr(macro_name: syn::Expr, expr: syn::Expr, format_args: Option<F
 	};
 
 	quote! {
-		{
-			let value: bool = #expr;
-			if !value {
+		match #expr {
+			false => {
 				::assert2::print::FailedCheck {
 					macro_name: #macro_name,
 					file: file!(),
@@ -111,9 +107,8 @@ fn check_bool_expr(macro_name: syn::Expr, expr: syn::Expr, format_args: Option<F
 					}
 				}.print();
 				Err(())
-			} else {
-				Ok(())
 			}
+			true => Ok(()),
 		}
 	}
 }
@@ -122,8 +117,6 @@ fn check_let_expr(macro_name: syn::Expr, expr: syn::ExprLet, format_args: Option
 	let syn::ExprLet {
 		pat,
 		expr,
-		let_token,
-		eq_token,
 		..
 	} = expr;
 
@@ -136,13 +129,11 @@ fn check_let_expr(macro_name: syn::Expr, expr: syn::ExprLet, format_args: Option
 	};
 
 	quote! {
-		{
-			let value = #expr;
-			if #let_token #pat #eq_token &value {
-				Ok(())
-			} else {
+		match &(#expr) {
+			#pat => Ok(()),
+			value => {
 				use ::assert2::maybe_debug::{IsDebug, IsMaybeNotDebug};
-				let value = (&&::assert2::maybe_debug::Wrap(&value)).__assert2_maybe_debug().wrap(&value);
+				let value = (&&::assert2::maybe_debug::Wrap(value)).__assert2_maybe_debug().wrap(value);
 				::assert2::print::FailedCheck {
 					macro_name: #macro_name,
 					file: file!(),

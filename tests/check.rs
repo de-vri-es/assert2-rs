@@ -104,6 +104,16 @@ fn non_debug_refs() {
 	assert!(let I(10) = & &I(10));
 }
 
+#[test]
+fn no_copy() {
+	let a = String::new();
+	let b = String::new();
+	assert2::debug_assert!(a == b);
+	assert2::debug_assert!(a == b);
+	drop(a);
+	drop(b);
+}
+
 macro_rules! test_panic {
 	($name:ident, $($expr:tt)*) => {
 		#[test]
