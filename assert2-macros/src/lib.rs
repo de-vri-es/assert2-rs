@@ -15,8 +15,10 @@ type FormatArgs = Punctuated<syn::Expr, syn::token::Comma>;
 #[proc_macro_hack]
 #[doc(hidden)]
 pub fn check_impl(tokens: TokenStream) -> TokenStream {
-	check_or_assert_impl(syn::parse_macro_input!(tokens)).into()
+	hygiene_bug::fix(check_or_assert_impl(syn::parse_macro_input!(tokens)).into())
 }
+
+mod hygiene_bug;
 
 #[cfg(feature = "let-assert")]
 mod let_assert;
@@ -25,7 +27,7 @@ mod let_assert;
 #[proc_macro]
 #[doc(hidden)]
 pub fn let_assert_impl(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
-	let_assert::let_assert_impl(syn::parse_macro_input!(tokens)).into()
+	hygiene_bug::fix(let_assert::let_assert_impl(syn::parse_macro_input!(tokens)).into())
 }
 
 /// Real implementation for assert!() and check!().
