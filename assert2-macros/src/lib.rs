@@ -157,11 +157,11 @@ fn check_let_expr(macro_name: syn::Expr, expr: syn::ExprLet, format_args: Option
 	}
 }
 
-fn tokens_to_string(ts: TokenStream, _fragments: &mut Fragments) -> TokenStream {
+fn tokens_to_string(ts: TokenStream, fragments: &mut Fragments) -> TokenStream {
 	#[cfg(nightly)]
 	{
 		use syn::spanned::Spanned;
-		find_macro_fragments(ts.clone(), _fragments);
+		find_macro_fragments(ts.clone(), fragments);
 		if let Some(s) = ts.span().unwrap().source_text() {
 			return quote!(#s);
 		}
