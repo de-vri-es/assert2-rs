@@ -66,7 +66,7 @@ fn check_binary_op(macro_name: syn::Expr, expr: syn::ExprBinary, format_args: Op
 			(left, right) if !(left #op right) => {
 				use ::assert2::maybe_debug::{IsDebug, IsMaybeNotDebug};
 				let left = (&&::assert2::maybe_debug::Wrap(left)).__assert2_maybe_debug().wrap(left);
-				let right = (&& ::assert2::maybe_debug::Wrap(right)).__assert2_maybe_debug().wrap(right);
+				let right = (&&::assert2::maybe_debug::Wrap(right)).__assert2_maybe_debug().wrap(right);
 				::assert2::print::FailedCheck {
 					macro_name: #macro_name,
 					file: file!(),
