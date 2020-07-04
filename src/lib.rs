@@ -282,6 +282,19 @@ macro_rules! let_assert {
 }
 
 #[doc(hidden)]
+#[macro_export]
+macro_rules! stringify {
+	($e:expr) => {
+		// Stringifying as an expression gives nicer output
+		// than stringifying a raw list of token trees.
+		stringify!($e)
+	};
+	($($t:tt)*) => {
+		stringify!($($t)*)
+	};
+}
+
+#[doc(hidden)]
 pub mod maybe_debug;
 
 #[doc(hidden)]

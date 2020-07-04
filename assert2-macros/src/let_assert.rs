@@ -1,9 +1,10 @@
 use proc_macro2::TokenStream;
-use quote::quote;
+use quote::{ToTokens, quote};
 use syn::punctuated::Punctuated;
 
-use crate::spanned_to_string;
+use crate::tokens_to_string;
 use crate::FormatArgs;
+use crate::Fragments;
 
 pub struct Args {
 	macro_name: syn::Expr,
@@ -24,8 +25,9 @@ pub fn let_assert_impl(args: Args) -> TokenStream {
 
 	let placeholders = collect_placeholders(&pattern);
 
-	let pat_str = spanned_to_string(&pattern);
-	let expr_str = spanned_to_string(&expression);
+	let mut fragments = Fragments::new();
+	let pat_str = tokens_to_string(pattern.to_token_stream(), &mut fragments);
+	let expr_str = tokens_to_string(expression.to_token_stream(), &mut fragments);
 	let custom_msg = match format_args {
 		Some(x) => quote!(Some(format_args!(#x))),
 		None => quote!(None),
@@ -51,7 +53,8 @@ pub fn let_assert_impl(args: Args) -> TokenStream {
 						value: &value,
 						pattern: #pat_str,
 						expression: #expr_str,
-					}
+					},
+					fragments: #fragments,
 				}.print();
 				panic!("assertion failed");
 			}

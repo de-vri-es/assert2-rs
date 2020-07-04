@@ -5,16 +5,16 @@
 
 extern crate proc_macro;
 
-use proc_macro::TokenStream;
+use proc_macro2::TokenStream;
 use proc_macro_hack::proc_macro_hack;
-use quote::quote;
+use quote::{ToTokens, quote};
 use syn::punctuated::Punctuated;
 
 type FormatArgs = Punctuated<syn::Expr, syn::token::Comma>;
 
 #[proc_macro_hack]
 #[doc(hidden)]
-pub fn check_impl(tokens: TokenStream) -> TokenStream {
+pub fn check_impl(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
 	hygiene_bug::fix(check_or_assert_impl(syn::parse_macro_input!(tokens)).into())
 }
 
@@ -31,7 +31,7 @@ pub fn let_assert_impl(tokens: proc_macro::TokenStream) -> proc_macro::TokenStre
 }
 
 /// Real implementation for assert!() and check!().
-fn check_or_assert_impl(args: Args) -> proc_macro2::TokenStream {
+fn check_or_assert_impl(args: Args) -> TokenStream {
 	match args.expr {
 		syn::Expr::Binary(expr) => check_binary_op(args.macro_name, expr, args.format_args),
 		syn::Expr::Let(expr) => check_let_expr(args.macro_name, expr, args.format_args),
@@ -39,7 +39,7 @@ fn check_or_assert_impl(args: Args) -> proc_macro2::TokenStream {
 	}
 }
 
-fn check_binary_op(macro_name: syn::Expr, expr: syn::ExprBinary, format_args: Option<FormatArgs>) -> proc_macro2::TokenStream {
+fn check_binary_op(macro_name: syn::Expr, expr: syn::ExprBinary, format_args: Option<FormatArgs>) -> TokenStream {
 	match expr.op {
 		syn::BinOp::Eq(_) => (),
 		syn::BinOp::Lt(_) => (),
@@ -51,9 +51,10 @@ fn check_binary_op(macro_name: syn::Expr, expr: syn::ExprBinary, format_args: Op
 	};
 
 	let syn::ExprBinary { left, right, op, .. } = &expr;
-	let left_expr = spanned_to_string(&left);
-	let right_expr = spanned_to_string(&right);
-	let op_str = spanned_to_string(&op);
+	let mut fragments = Fragments::new();
+	let left_expr = tokens_to_string(left.to_token_stream(), &mut fragments);
+	let right_expr = tokens_to_string(right.to_token_stream(), &mut fragments);
+	let op_str = tokens_to_string(op.to_token_stream(), &mut fragments);
 
 	let custom_msg = match format_args {
 		Some(x) => quote!(Some(format_args!(#x))),
@@ -78,7 +79,8 @@ fn check_binary_op(macro_name: syn::Expr, expr: syn::ExprBinary, format_args: Op
 						operator: #op_str,
 						left_expr: #left_expr,
 						right_expr: #right_expr,
-					}
+					},
+					fragments: #fragments,
 				}.print();
 				Err(())
 			}
@@ -87,8 +89,9 @@ fn check_binary_op(macro_name: syn::Expr, expr: syn::ExprBinary, format_args: Op
 	}
 }
 
-fn check_bool_expr(macro_name: syn::Expr, expr: syn::Expr, format_args: Option<FormatArgs>) -> proc_macro2::TokenStream {
-	let expr_str = spanned_to_string(&expr);
+fn check_bool_expr(macro_name: syn::Expr, expr: syn::Expr, format_args: Option<FormatArgs>) -> TokenStream {
+	let mut fragments = Fragments::new();
+	let expr_str = tokens_to_string(expr.to_token_stream(), &mut fragments);
 
 	let custom_msg = match format_args {
 		Some(x) => quote!(Some(format_args!(#x))),
@@ -106,7 +109,8 @@ fn check_bool_expr(macro_name: syn::Expr, expr: syn::Expr, format_args: Option<F
 					custom_msg: #custom_msg,
 					expression: ::assert2::print::BooleanExpr {
 						expression: #expr_str,
-					}
+					},
+					fragments: #fragments,
 				}.print();
 				Err(())
 			}
@@ -115,15 +119,16 @@ fn check_bool_expr(macro_name: syn::Expr, expr: syn::Expr, format_args: Option<F
 	}
 }
 
-fn check_let_expr(macro_name: syn::Expr, expr: syn::ExprLet, format_args: Option<FormatArgs>) -> proc_macro2::TokenStream {
+fn check_let_expr(macro_name: syn::Expr, expr: syn::ExprLet, format_args: Option<FormatArgs>) -> TokenStream {
 	let syn::ExprLet {
 		pat,
 		expr,
 		..
 	} = expr;
 
-	let pat_str = spanned_to_string(&pat);
-	let expr_str = spanned_to_string(&expr);
+	let mut fragments = Fragments::new();
+	let pat_str = tokens_to_string(pat.to_token_stream(), &mut fragments);
+	let expr_str = tokens_to_string(expr.to_token_stream(), &mut fragments);
 
 	let custom_msg = match format_args {
 		Some(x) => quote!(Some(format_args!(#x))),
@@ -147,7 +152,8 @@ fn check_let_expr(macro_name: syn::Expr, expr: syn::ExprLet, format_args: Option
 						value: &value,
 						pattern: #pat_str,
 						expression: #expr_str,
-					}
+					},
+					fragments: #fragments,
 				}.print();
 				Err(())
 			}
@@ -155,15 +161,59 @@ fn check_let_expr(macro_name: syn::Expr, expr: syn::ExprLet, format_args: Option
 	}
 }
 
-fn spanned_to_string<T: quote::ToTokens + ?Sized>(node: &T) -> String {
+fn tokens_to_string(ts: TokenStream, _fragments: &mut Fragments) -> TokenStream {
 	#[cfg(nightly)]
 	{
 		use syn::spanned::Spanned;
-		if let Some(s) = node.span().unwrap().source_text() {
-			return s;
+		find_macro_fragments(ts.clone(), _fragments);
+		if let Some(s) = ts.span().unwrap().source_text() {
+			return quote!(#s);
 		}
 	}
-	node.to_token_stream().to_string()
+	quote!(::assert2::stringify!(#ts))
+}
+
+#[cfg(nightly)]
+fn find_macro_fragments(ts: TokenStream, f: &mut Fragments) {
+	use syn::spanned::Spanned;
+	use proc_macro2::{Delimiter, TokenTree};
+
+	for token in ts {
+		if let TokenTree::Group(g) = token {
+			if g.delimiter() == Delimiter::None {
+				let name = g.span().unwrap().source_text().unwrap_or_else(|| "???".into());
+				let contents = g.stream();
+				let expansion = contents.span().unwrap().source_text().unwrap_or_else(|| contents.to_string());
+				if name != expansion {
+					let entry = (name, expansion);
+					if !f.list.contains(&entry) {
+						f.list.push(entry);
+					}
+				}
+			}
+			find_macro_fragments(g.stream(), f);
+		}
+	}
+}
+
+struct Fragments {
+	list: Vec<(String, String)>,
+}
+
+impl Fragments {
+	fn new() -> Self {
+		Self { list: Vec::new() }
+	}
+}
+
+impl quote::ToTokens for Fragments {
+	fn to_tokens(&self, tokens: &mut TokenStream) {
+		let mut t = TokenStream::new();
+		for (name, expansion) in &self.list {
+			t.extend(quote!((#name, #expansion),));
+		}
+		tokens.extend(quote!(&[#t]));
+	}
 }
 
 struct Args {

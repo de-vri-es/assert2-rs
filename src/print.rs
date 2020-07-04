@@ -36,6 +36,7 @@ pub struct FailedCheck<'a, T> {
 	pub column: u32,
 	pub custom_msg: Option<std::fmt::Arguments<'a>>,
 	pub expression: T,
+	pub fragments: &'a [(&'a str, &'a str)],
 }
 
 pub trait CheckExpression {
@@ -78,6 +79,12 @@ impl<'a, T: CheckExpression> FailedCheck<'a, T> {
 		);
 		self.expression.print_expression();
 		eprintln!(" {}", Paint::magenta(")"));
+		if !self.fragments.is_empty() {
+			eprintln!("with:");
+			for (name, expansion) in self.fragments {
+				eprintln!("  {} {} {}", Paint::magenta(name), Paint::blue("=").bold(), expansion);
+			}
+		}
 		eprintln!("with expansion:");
 		eprint!("  ");
 		self.expression.print_expansion();
