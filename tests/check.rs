@@ -105,6 +105,35 @@ fn non_debug_refs() {
 }
 
 #[test]
+fn test_hygiene_bug() {
+	// Test to see if we work around a hygiene bug in the Rust compiler.
+	// See https://github.com/rust-lang/rust/issues/74036
+	// and https://github.com/rust-lang/rust/issues/67062
+	macro_rules! assert_square {
+		($val:expr, $expected:expr) => {
+			assert!($val * $val == $expected)
+		};
+	};
+
+	fn foo(a: i32, b: i32) -> i32 {
+		a + b
+	}
+
+	macro_rules! assert_foo {
+		($($args:expr),*; $expected:expr) => {
+			assert!(foo($($args),*) == $expected)
+		};
+	}
+
+	// If the hygiene bug is not fixed, this evaluates as 2 + 2 * 2 + 2 instead of (2 + 2) * (2 + 2).
+	// So it will fail with assert!(8 == 16).
+	assert_square!(2 + 2, 16);
+
+	// Ensure function arguments don't get wrongly turned into tuples by the workaround.
+	assert_foo!(2, 3; 5);
+}
+
+#[test]
 fn no_copy() {
 	let a = String::new();
 	let b = String::new();
