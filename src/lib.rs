@@ -63,9 +63,7 @@
 //! This makes the output a bit more readable on nightly.
 //!
 //! # The `let_assert!()` macro
-//! If you enable the `let-assert` feature of the crate,
-//! and the unstable `proc_macro_hygiene` feature,
-//! you can also use an additional macro: [`let_assert!(...)`](macro.let_assert.html).
+//! Tou can also use an additional macro: [`let_assert!(...)`](macro.let_assert.html).
 //! This is very similar to an `assert` with a `let` statement,
 //! except that all placeholders will be made available as variables in the calling scope.
 //!
@@ -73,14 +71,6 @@
 //! For example:
 //!
 //! ```
-//! # // This may look weird, but it makes sures the code looks as it should on nightly,
-//! # // but and compiles into a NOP if the "let_assert" feature is off for stable.
-//! # #![cfg_attr(feature = "let_assert", feature(proc_macro_hygiene))]
-//! # #[cfg(feature = "let_assert")] {
-//! #![feature(proc_macro_hygiene)]
-//! # }
-//!
-//! # #[cfg(feature = "let_assert")]
 //! # fn main() {
 //! # use assert2::let_assert;
 //! # use assert2::check;
@@ -132,10 +122,7 @@
 //!  * `CLICOLOR == 0`: Don't output ANSI color escape codes.
 //!  * `CLICOLOR_FORCE != 0`: ANSI colors should be enabled no matter what.
 
-use proc_macro_hack::proc_macro_hack;
-
 #[doc(hidden)]
-#[proc_macro_hack]
 pub use assert2_macros::check_impl;
 
 /// Assert that an expression evaluates to true or matches a pattern.
@@ -225,13 +212,8 @@ macro_rules! debug_assert {
 /// This can be used to assert a pattern match,
 /// and then run more checks on the captured variables.
 ///
-/// This macro is only available if if the `let-assert` feature of the `assert2` crate is enabled,
-/// and it requires the `proc_macro_hygiene` rust feature to be enabled by the user of the macro.
-///
 /// For example:
 /// ```
-/// #![feature(proc_macro_hygiene)]
-///
 /// # use assert2::let_assert;
 /// # use assert2::check;
 /// # fn main() {
@@ -272,8 +254,6 @@ macro_rules! debug_assert {
 /// check!(e.to_string() == "invalid name: bogus name");
 /// # }
 /// ```
-#[cfg(feature = "let-assert")]
-#[cfg_attr(feature = "doc-cfg", doc(cfg(all(feature = "let-assert", proc_macro_hygiene))))]
 #[macro_export]
 macro_rules! let_assert {
 	($($tokens:tt)*) => {

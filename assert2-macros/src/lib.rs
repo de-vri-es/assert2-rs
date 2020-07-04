@@ -6,26 +6,22 @@
 extern crate proc_macro;
 
 use proc_macro2::TokenStream;
-use proc_macro_hack::proc_macro_hack;
 use quote::{ToTokens, quote};
 use syn::punctuated::Punctuated;
 
 type FormatArgs = Punctuated<syn::Expr, syn::token::Comma>;
 
-#[proc_macro_hack]
 #[doc(hidden)]
+#[proc_macro]
 pub fn check_impl(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
 	hygiene_bug::fix(check_or_assert_impl(syn::parse_macro_input!(tokens)).into())
 }
 
 mod hygiene_bug;
-
-#[cfg(feature = "let-assert")]
 mod let_assert;
 
-#[cfg(feature = "let-assert")]
-#[proc_macro]
 #[doc(hidden)]
+#[proc_macro]
 pub fn let_assert_impl(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
 	hygiene_bug::fix(let_assert::let_assert_impl(syn::parse_macro_input!(tokens)).into())
 }

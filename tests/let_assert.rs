@@ -1,6 +1,3 @@
-#![cfg_attr(feature = "let-assert", feature(proc_macro_hygiene))]
-
-#[cfg(feature = "let-assert")]
 mod tests {
 	use assert2::assert;
 	use assert2::let_assert;
