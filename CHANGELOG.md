@@ -1,3 +1,11 @@
+v0.3.0:
+  * Use stabilized `proc_macro` expressions in place of `proc_macro_hack`.
+  * Improve display of macro fragments on nightly.
+  * Format expressions nicer on `stable` and `beta`.
+  * Work around hygiene bug in Rust compiler ([issue #67062]).
+
+[issue #67062]: https://github.com/rust-lang/rust/issues/67062
+
 v0.2.1:
   * Prevent `assert!(a == b)` from consuming `a` or `b`.
 
