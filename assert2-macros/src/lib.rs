@@ -48,8 +48,8 @@ fn check_binary_op(macro_name: syn::Expr, expr: syn::ExprBinary, format_args: Op
 
 	let syn::ExprBinary { left, right, op, .. } = &expr;
 	let mut fragments = Fragments::new();
-	let left_expr = tokens_to_string(left.to_token_stream(), &mut fragments);
-	let right_expr = tokens_to_string(right.to_token_stream(), &mut fragments);
+	let left_expr = expression_to_string(left.to_token_stream(), &mut fragments);
+	let right_expr = expression_to_string(right.to_token_stream(), &mut fragments);
 	let op_str = tokens_to_string(op.to_token_stream(), &mut fragments);
 
 	let custom_msg = match format_args {
@@ -87,7 +87,7 @@ fn check_binary_op(macro_name: syn::Expr, expr: syn::ExprBinary, format_args: Op
 
 fn check_bool_expr(macro_name: syn::Expr, expr: syn::Expr, format_args: Option<FormatArgs>) -> TokenStream {
 	let mut fragments = Fragments::new();
-	let expr_str = tokens_to_string(expr.to_token_stream(), &mut fragments);
+	let expr_str = expression_to_string(expr.to_token_stream(), &mut fragments);
 
 	let custom_msg = match format_args {
 		Some(x) => quote!(Some(format_args!(#x))),
@@ -124,7 +124,7 @@ fn check_let_expr(macro_name: syn::Expr, expr: syn::ExprLet, format_args: Option
 
 	let mut fragments = Fragments::new();
 	let pat_str = tokens_to_string(pat.to_token_stream(), &mut fragments);
-	let expr_str = tokens_to_string(expr.to_token_stream(), &mut fragments);
+	let expr_str = expression_to_string(expr.to_token_stream(), &mut fragments);
 
 	let custom_msg = match format_args {
 		Some(x) => quote!(Some(format_args!(#x))),
@@ -157,6 +157,10 @@ fn check_let_expr(macro_name: syn::Expr, expr: syn::ExprLet, format_args: Option
 	}
 }
 
+#[allow(unused)]
+fn ignore<T>(_thing: &T) {
+}
+
 fn tokens_to_string(ts: TokenStream, fragments: &mut Fragments) -> TokenStream {
 	#[cfg(nightly)]
 	{
@@ -166,6 +170,27 @@ fn tokens_to_string(ts: TokenStream, fragments: &mut Fragments) -> TokenStream {
 			return quote!(#s);
 		}
 	}
+
+	#[cfg(not(nightly))]
+	ignore(fragments);
+
+	let tokens = ts.to_string();
+	quote!(#tokens)
+}
+
+fn expression_to_string(ts: TokenStream, fragments: &mut Fragments) -> TokenStream {
+	#[cfg(nightly)]
+	{
+		use syn::spanned::Spanned;
+		find_macro_fragments(ts.clone(), fragments);
+		if let Some(s) = ts.span().unwrap().source_text() {
+			return quote!(#s);
+		}
+	}
+
+	#[cfg(not(nightly))]
+	ignore(fragments);
+
 	quote!(::assert2::stringify!(#ts))
 }
 

@@ -2,6 +2,7 @@ use proc_macro2::TokenStream;
 use quote::{ToTokens, quote};
 use syn::punctuated::Punctuated;
 
+use crate::expression_to_string;
 use crate::tokens_to_string;
 use crate::FormatArgs;
 use crate::Fragments;
@@ -27,7 +28,7 @@ pub fn let_assert_impl(args: Args) -> TokenStream {
 
 	let mut fragments = Fragments::new();
 	let pat_str = tokens_to_string(pattern.to_token_stream(), &mut fragments);
-	let expr_str = tokens_to_string(expression.to_token_stream(), &mut fragments);
+	let expr_str = expression_to_string(expression.to_token_stream(), &mut fragments);
 	let custom_msg = match format_args {
 		Some(x) => quote!(Some(format_args!(#x))),
 		None => quote!(None),
