@@ -1,3 +1,6 @@
+v0.3.1:
+  * Use `$crate` to avoid the need for a direct dependency on `assert2`.
+
 v0.3.0:
   * Use stabilized `proc_macro` expressions in place of `proc_macro_hack`.
   * Improve display of macro fragments on nightly.
