@@ -157,10 +157,6 @@ fn check_let_expr(macro_name: syn::Expr, expr: syn::ExprLet, format_args: Option
 	}
 }
 
-#[allow(unused)]
-fn ignore<T>(_thing: &T) {
-}
-
 fn tokens_to_string(ts: TokenStream, fragments: &mut Fragments) -> TokenStream {
 	#[cfg(nightly)]
 	{
@@ -171,8 +167,7 @@ fn tokens_to_string(ts: TokenStream, fragments: &mut Fragments) -> TokenStream {
 		}
 	}
 
-	#[cfg(not(nightly))]
-	ignore(fragments);
+	let _ = fragments;
 
 	let tokens = ts.to_string();
 	quote!(#tokens)
@@ -188,8 +183,7 @@ fn expression_to_string(ts: TokenStream, fragments: &mut Fragments) -> TokenStre
 		}
 	}
 
-	#[cfg(not(nightly))]
-	ignore(fragments);
+	let _ = fragments;
 
 	quote!(::assert2::stringify!(#ts))
 }
