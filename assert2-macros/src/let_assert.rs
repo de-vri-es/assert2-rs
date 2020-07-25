@@ -8,6 +8,7 @@ use crate::FormatArgs;
 use crate::Fragments;
 
 pub struct Args {
+	crate_name: syn::Path,
 	macro_name: syn::Expr,
 	pattern: syn::Pat,
 	eq_token: syn::token::Eq,
@@ -17,6 +18,7 @@ pub struct Args {
 
 pub fn let_assert_impl(args: Args) -> TokenStream {
 	let Args {
+		crate_name,
 		macro_name,
 		pattern,
 		eq_token,
@@ -28,7 +30,7 @@ pub fn let_assert_impl(args: Args) -> TokenStream {
 
 	let mut fragments = Fragments::new();
 	let pat_str = tokens_to_string(pattern.to_token_stream(), &mut fragments);
-	let expr_str = expression_to_string(expression.to_token_stream(), &mut fragments);
+	let expr_str = expression_to_string(&crate_name, expression.to_token_stream(), &mut fragments);
 	let custom_msg = match format_args {
 		Some(x) => quote!(Some(format_args!(#x))),
 		None => quote!(None),
@@ -41,15 +43,15 @@ pub fn let_assert_impl(args: Args) -> TokenStream {
 				(#placeholders)
 			} else {
 				#[allow(unused)]
-				use ::assert2::maybe_debug::{IsDebug, IsMaybeNotDebug};
+				use #crate_name::maybe_debug::{IsDebug, IsMaybeNotDebug};
 				let value = (&&::assert2::maybe_debug::Wrap(&value)).__assert2_maybe_debug().wrap(&value);
-				::assert2::print::FailedCheck {
+				#crate_name::print::FailedCheck {
 					macro_name: #macro_name,
 					file: file!(),
 					line: line!(),
 					column: column!(),
 					custom_msg: #custom_msg,
-					expression: ::assert2::print::MatchExpr {
+					expression: #crate_name::print::MatchExpr {
 						print_let: false,
 						value: &value,
 						pattern: #pat_str,
@@ -83,6 +85,8 @@ fn collect_placeholders(pat: &syn::Pat) -> Punctuated<syn::Ident, syn::token::Co
 
 impl syn::parse::Parse for Args {
 	fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+		let crate_name = input.parse()?;
+		let _comma = input.parse::<syn::token::Comma>()?;
 		let macro_name = input.parse()?;
 		let _comma = input.parse::<syn::token::Comma>()?;
 		let pattern = input.parse()?;
@@ -98,6 +102,7 @@ impl syn::parse::Parse for Args {
 		let format_args = Some(format_args).filter(|x| !x.is_empty());
 
 		Ok(Self {
+			crate_name,
 			macro_name,
 			pattern,
 			eq_token,

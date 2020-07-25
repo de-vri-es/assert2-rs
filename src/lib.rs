@@ -125,6 +125,9 @@
 #[doc(hidden)]
 pub use assert2_macros::check_impl;
 
+#[doc(hidden)]
+pub use assert2_macros::let_assert_impl;
+
 /// Assert that an expression evaluates to true or matches a pattern.
 ///
 /// Use a `let` expression to test an expression against a pattern: `assert!(let pattern = expr)`.
@@ -140,13 +143,13 @@ pub use assert2_macros::check_impl;
 /// These will be used to print a custom message in addition to the normal message.
 ///
 /// ```
-/// # use ::assert2::assert;
+/// # use assert2::assert;
 /// assert!(3 * 4 == 12, "Oh no, math is broken! 1 + 1 == {}", 1 + 1);
 /// ```
 #[macro_export]
 macro_rules! assert {
 	($($tokens:tt)*) => {
-		if let Err(()) = ::assert2::check_impl!("assert", $($tokens)*) {
+		if let Err(()) = $crate::check_impl!($crate, "assert", $($tokens)*) {
 			panic!("assertion failed");
 		}
 	}
@@ -172,16 +175,16 @@ macro_rules! assert {
 /// These will be used to print a custom message in addition to the normal message.
 ///
 /// ```
-/// # use ::assert2::check;
+/// # use assert2::check;
 /// check!(3 * 4 == 12, "Oh no, math is broken! 1 + 1 == {}", 1 + 1);
 /// ```
 #[macro_export]
 macro_rules! check {
 	($($tokens:tt)*) => {
-		let _guard = match ::assert2::check_impl!("check", $($tokens)*) {
+		let _guard = match $crate::check_impl!($crate, "check", $($tokens)*) {
 			Ok(_) => None,
 			Err(_) => {
-				Some(::assert2::FailGuard(|| panic!("check failed")))
+				Some($crate::FailGuard(|| panic!("check failed")))
 			},
 		};
 	}
@@ -198,7 +201,7 @@ macro_rules! check {
 macro_rules! debug_assert {
 	($($tokens:tt)*) => {
 		if ::core::cfg!(debug_assertions) {
-			if let Err(()) = ::assert2::check_impl!("debug_assert", $($tokens)*) {
+			if let Err(()) = $crate::check_impl!($crate, "debug_assert", $($tokens)*) {
 				panic!("assertion failed");
 			}
 		}
@@ -257,7 +260,7 @@ macro_rules! debug_assert {
 #[macro_export]
 macro_rules! let_assert {
 	($($tokens:tt)*) => {
-		::assert2_macros::let_assert_impl!("let_assert", $($tokens)*);
+		$crate::let_assert_impl!($crate, "let_assert", $($tokens)*);
 	}
 }
 
