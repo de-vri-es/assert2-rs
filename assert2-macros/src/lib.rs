@@ -29,13 +29,13 @@ pub fn let_assert_impl(tokens: proc_macro::TokenStream) -> proc_macro::TokenStre
 /// Real implementation for assert!() and check!().
 fn check_or_assert_impl(args: Args) -> TokenStream {
 	match args.expr {
-		syn::Expr::Binary(expr) => check_binary_op(args.macro_name, expr, args.format_args),
-		syn::Expr::Let(expr) => check_let_expr(args.macro_name, expr, args.format_args),
-		expr => check_bool_expr(args.macro_name, expr, args.format_args),
+		syn::Expr::Binary(expr) => check_binary_op(args.crate_name, args.macro_name, expr, args.format_args),
+		syn::Expr::Let(expr) => check_let_expr(args.crate_name, args.macro_name, expr, args.format_args),
+		expr => check_bool_expr(args.crate_name, args.macro_name, expr, args.format_args),
 	}
 }
 
-fn check_binary_op(macro_name: syn::Expr, expr: syn::ExprBinary, format_args: Option<FormatArgs>) -> TokenStream {
+fn check_binary_op(crate_name: syn::Path, macro_name: syn::Expr, expr: syn::ExprBinary, format_args: Option<FormatArgs>) -> TokenStream {
 	match expr.op {
 		syn::BinOp::Eq(_) => (),
 		syn::BinOp::Lt(_) => (),
@@ -43,13 +43,13 @@ fn check_binary_op(macro_name: syn::Expr, expr: syn::ExprBinary, format_args: Op
 		syn::BinOp::Ne(_) => (),
 		syn::BinOp::Ge(_) => (),
 		syn::BinOp::Gt(_) => (),
-		_ => return check_bool_expr(macro_name, syn::Expr::Binary(expr), format_args),
+		_ => return check_bool_expr(crate_name, macro_name, syn::Expr::Binary(expr), format_args),
 	};
 
 	let syn::ExprBinary { left, right, op, .. } = &expr;
 	let mut fragments = Fragments::new();
-	let left_expr = expression_to_string(left.to_token_stream(), &mut fragments);
-	let right_expr = expression_to_string(right.to_token_stream(), &mut fragments);
+	let left_expr = expression_to_string(&crate_name, left.to_token_stream(), &mut fragments);
+	let right_expr = expression_to_string(&crate_name, right.to_token_stream(), &mut fragments);
 	let op_str = tokens_to_string(op.to_token_stream(), &mut fragments);
 
 	let custom_msg = match format_args {
@@ -60,16 +60,16 @@ fn check_binary_op(macro_name: syn::Expr, expr: syn::ExprBinary, format_args: Op
 	quote! {
 		match (&(#left), &(#right)) {
 			(left, right) if !(left #op right) => {
-				use ::assert2::maybe_debug::{IsDebug, IsMaybeNotDebug};
-				let left = (&&::assert2::maybe_debug::Wrap(left)).__assert2_maybe_debug().wrap(left);
-				let right = (&&::assert2::maybe_debug::Wrap(right)).__assert2_maybe_debug().wrap(right);
-				::assert2::print::FailedCheck {
+				use #crate_name::maybe_debug::{IsDebug, IsMaybeNotDebug};
+				let left = (&&#crate_name::maybe_debug::Wrap(left)).__assert2_maybe_debug().wrap(left);
+				let right = (&&#crate_name::maybe_debug::Wrap(right)).__assert2_maybe_debug().wrap(right);
+				#crate_name::print::FailedCheck {
 					macro_name: #macro_name,
 					file: file!(),
 					line: line!(),
 					column: column!(),
 					custom_msg: #custom_msg,
-					expression: ::assert2::print::BinaryOp {
+					expression: #crate_name::print::BinaryOp {
 						left: &left,
 						right: &right,
 						operator: #op_str,
@@ -85,9 +85,9 @@ fn check_binary_op(macro_name: syn::Expr, expr: syn::ExprBinary, format_args: Op
 	}
 }
 
-fn check_bool_expr(macro_name: syn::Expr, expr: syn::Expr, format_args: Option<FormatArgs>) -> TokenStream {
+fn check_bool_expr(crate_name: syn::Path, macro_name: syn::Expr, expr: syn::Expr, format_args: Option<FormatArgs>) -> TokenStream {
 	let mut fragments = Fragments::new();
-	let expr_str = expression_to_string(expr.to_token_stream(), &mut fragments);
+	let expr_str = expression_to_string(&crate_name, expr.to_token_stream(), &mut fragments);
 
 	let custom_msg = match format_args {
 		Some(x) => quote!(Some(format_args!(#x))),
@@ -97,13 +97,13 @@ fn check_bool_expr(macro_name: syn::Expr, expr: syn::Expr, format_args: Option<F
 	quote! {
 		match #expr {
 			false => {
-				::assert2::print::FailedCheck {
+				#crate_name::print::FailedCheck {
 					macro_name: #macro_name,
 					file: file!(),
 					line: line!(),
 					column: column!(),
 					custom_msg: #custom_msg,
-					expression: ::assert2::print::BooleanExpr {
+					expression: #crate_name::print::BooleanExpr {
 						expression: #expr_str,
 					},
 					fragments: #fragments,
@@ -115,7 +115,7 @@ fn check_bool_expr(macro_name: syn::Expr, expr: syn::Expr, format_args: Option<F
 	}
 }
 
-fn check_let_expr(macro_name: syn::Expr, expr: syn::ExprLet, format_args: Option<FormatArgs>) -> TokenStream {
+fn check_let_expr(crate_name: syn::Path, macro_name: syn::Expr, expr: syn::ExprLet, format_args: Option<FormatArgs>) -> TokenStream {
 	let syn::ExprLet {
 		pat,
 		expr,
@@ -124,7 +124,7 @@ fn check_let_expr(macro_name: syn::Expr, expr: syn::ExprLet, format_args: Option
 
 	let mut fragments = Fragments::new();
 	let pat_str = tokens_to_string(pat.to_token_stream(), &mut fragments);
-	let expr_str = expression_to_string(expr.to_token_stream(), &mut fragments);
+	let expr_str = expression_to_string(&crate_name, expr.to_token_stream(), &mut fragments);
 
 	let custom_msg = match format_args {
 		Some(x) => quote!(Some(format_args!(#x))),
@@ -135,15 +135,15 @@ fn check_let_expr(macro_name: syn::Expr, expr: syn::ExprLet, format_args: Option
 		match &(#expr) {
 			#pat => Ok(()),
 			value => {
-				use ::assert2::maybe_debug::{IsDebug, IsMaybeNotDebug};
-				let value = (&&::assert2::maybe_debug::Wrap(value)).__assert2_maybe_debug().wrap(value);
-				::assert2::print::FailedCheck {
+				use #crate_name::maybe_debug::{IsDebug, IsMaybeNotDebug};
+				let value = (&&#crate_name::maybe_debug::Wrap(value)).__assert2_maybe_debug().wrap(value);
+				#crate_name::print::FailedCheck {
 					macro_name: #macro_name,
 					file: file!(),
 					line: line!(),
 					column: column!(),
 					custom_msg: #custom_msg,
-					expression: ::assert2::print::MatchExpr {
+					expression: #crate_name::print::MatchExpr {
 						print_let: true,
 						value: &value,
 						pattern: #pat_str,
@@ -173,7 +173,7 @@ fn tokens_to_string(ts: TokenStream, fragments: &mut Fragments) -> TokenStream {
 	quote!(#tokens)
 }
 
-fn expression_to_string(ts: TokenStream, fragments: &mut Fragments) -> TokenStream {
+fn expression_to_string(crate_name: &syn::Path, ts: TokenStream, fragments: &mut Fragments) -> TokenStream {
 	#[cfg(nightly)]
 	{
 		use syn::spanned::Spanned;
@@ -185,7 +185,7 @@ fn expression_to_string(ts: TokenStream, fragments: &mut Fragments) -> TokenStre
 
 	let _ = fragments;
 
-	quote!(::assert2::stringify!(#ts))
+	quote!(#crate_name::stringify!(#ts))
 }
 
 #[cfg(nightly)]
@@ -232,6 +232,7 @@ impl quote::ToTokens for Fragments {
 }
 
 struct Args {
+	crate_name: syn::Path,
 	macro_name: syn::Expr,
 	expr: syn::Expr,
 	format_args: Option<FormatArgs>,
@@ -239,6 +240,8 @@ struct Args {
 
 impl syn::parse::Parse for Args {
 	fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+		let crate_name = input.parse()?;
+		let _comma: syn::token::Comma = input.parse()?;
 		let macro_name = input.parse()?;
 		let _comma: syn::token::Comma = input.parse()?;
 		let expr = input.parse()?;
@@ -251,6 +254,7 @@ impl syn::parse::Parse for Args {
 
 		let format_args = Some(format_args).filter(|x| !x.is_empty());
 		Ok(Self {
+			crate_name,
 			macro_name,
 			expr,
 			format_args,
