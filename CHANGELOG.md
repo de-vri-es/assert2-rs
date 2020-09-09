@@ -1,3 +1,7 @@
+v0.3.2:
+  * Support mutable captures in `let_assert!(...)`.
+  * Support capturing by reference in `let_assert!(...)` (as long as Rust allows it).
+
 v0.3.1:
   * Use `$crate` to avoid the need for a direct dependency on `assert2`.
 

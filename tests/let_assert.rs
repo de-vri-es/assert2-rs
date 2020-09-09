@@ -34,6 +34,27 @@ mod tests {
 	}
 
 	#[test]
+	fn mut_binding() {
+		// We should be able to capture things mutably.
+		let_assert!(mut foo = String::from("foo"));
+		foo += " bar";
+	}
+
+	#[test]
+	fn ref_binding() {
+		// We should be able to capture static things by reference.
+		let_assert!(ref foo = 10);
+		std::assert!(foo == &10);
+	}
+
+	#[test]
+	fn subpattern_binding() {
+		// We should be able to capture things that use subpatterns.
+		let_assert!(foo @ 10 = 10);
+		std::assert!(foo == 10);
+	}
+
+	#[test]
 	fn consume() {
 		let_assert!(Some(x) = Some(String::from("foo")));
 		assert!(x == "foo");
