@@ -105,6 +105,11 @@ fn non_debug_refs() {
 }
 
 #[test]
+fn non_sized() {
+	assert!(b"hello"[..] == b"hello"[..]);
+}
+
+#[test]
 fn test_hygiene_bug() {
 	// Test to see if we work around a hygiene bug in the Rust compiler.
 	// See https://github.com/rust-lang/rust/issues/74036

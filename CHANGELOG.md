@@ -1,3 +1,6 @@
+v0.3.3:
+  * Fix stringification of non-sized types.
+
 v0.3.2:
   * Support mutable captures in `let_assert!(...)`.
   * Support capturing by reference in `let_assert!(...)` (as long as Rust allows it).
