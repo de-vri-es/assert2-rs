@@ -1,6 +1,3 @@
-#![cfg_attr(feature = "doc-cfg", feature(doc_cfg))]
-#![allow(clippy::needless_lifetimes)]
-
 //! All-purpose [`assert!(...)`](macro.assert.html) and [`check!(...)`](macro.check.html) macros, inspired by [Catch2](https://github.com/catchorg/Catch2).
 //! There is also a [`debug_assert!(...)`](macro.debug_assert.html) macro that is disabled on optimized builds by default.
 //! As cherry on top there is a [`let_assert!(...)`](macro.let_assert.html) macro that lets you test a pattern while capturing parts of it.
@@ -147,8 +144,17 @@
 //!  * `CLICOLOR == 0`: Don't output ANSI color escape codes.
 //!  * `CLICOLOR_FORCE != 0`: ANSI colors should be enabled no matter what.
 
+#![cfg_attr(feature = "doc-cfg", feature(doc_cfg))]
+#![allow(clippy::needless_lifetimes)]
+
+#[doc(hidden)]
+pub mod info;
+
 #[doc(hidden)]
 pub mod __assert2_impl;
+
+#[doc(hidden)]
+pub use core::stringify as __assert2_core_stringify;
 
 /// Assert that an expression evaluates to true or matches a pattern.
 ///
@@ -298,12 +304,6 @@ macro_rules! __assert2_stringify {
 		$crate::__assert2_core_stringify!($($t)*)
 	};
 }
-
-#[doc(hidden)]
-pub use core::stringify as __assert2_core_stringify;
-
-#[doc(hidden)]
-pub mod info;
 
 /// Scope guard to panic when a check!() fails.
 ///
