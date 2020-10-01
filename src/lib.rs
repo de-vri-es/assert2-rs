@@ -19,6 +19,16 @@
 //! The macros also accept additional arguments for a custom message, so it is fully compatible with `std::assert`.
 //! That means you don't have to worry about overwriting the standard `assert` with `use assert2::assert`.
 //!
+//! # Additional debug messages.
+//!
+//! You can add custom debug messages to be printed when an assertion or check fails
+//! with the [`info!(...)`](info!) and the [`capture!(...)`](capture!) macros.
+//! The `info!` macro can be used to add arbitrary messages and supports formatting.
+//!
+//! The `capture!` macro is used to capture the value of an expression.
+//! It will include both the expression and the pretty-printed `Debug` form of the resulting value.
+//!
+//!
 //! # Examples
 //!
 //! ```should_panic
@@ -291,3 +301,21 @@ macro_rules! __assert2_stringify {
 
 #[doc(hidden)]
 pub use core::stringify as __assert2_core_stringify;
+
+#[doc(hidden)]
+pub mod info;
+
+/// Scope guard to panic when a check!() fails.
+///
+/// The panic is done by a lambda passed to the guard,
+/// so that the line information points to the check!() invocation.
+#[doc(hidden)]
+pub struct FailGuard<T: FnMut()>(pub T);
+
+impl<T: FnMut()> Drop for FailGuard<T> {
+	fn drop(&mut self) {
+		if !std::thread::panicking() {
+			(self.0)()
+		}
+	}
+}

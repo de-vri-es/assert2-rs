@@ -80,10 +80,13 @@ impl<'a, T: CheckExpression> FailedCheck<'a, T> {
 		eprint!("  ");
 		self.expression.print_expansion();
 		eprintln!();
-		if let Some(msg) = self.custom_msg {
+		if self.custom_msg.is_some() || crate::info::info_count() > 0 {
 			eprintln!("with message:");
+		}
+		if let Some(msg) = self.custom_msg {
 			eprintln!("  {}", Paint::default(msg).bold());
 		}
+		crate::info::print_info();
 		eprintln!();
 	}
 }
