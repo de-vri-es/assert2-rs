@@ -148,6 +148,9 @@
 #![allow(clippy::needless_lifetimes)]
 
 #[doc(hidden)]
+pub mod check_scope;
+
+#[doc(hidden)]
 pub mod info;
 
 #[doc(hidden)]
@@ -212,7 +215,7 @@ macro_rules! check {
 		let _guard = match $crate::__assert2_impl::check_impl!($crate, "check", $($tokens)*) {
 			Ok(_) => None,
 			Err(_) => {
-				Some($crate::__assert2_impl::FailGuard(|| panic!("check failed")))
+				$crate::check_scope::check_failed(|| panic!("check failed"))
 			},
 		};
 	}
@@ -303,19 +306,4 @@ macro_rules! __assert2_stringify {
 	($($t:tt)*) => {
 		$crate::__assert2_core_stringify!($($t)*)
 	};
-}
-
-/// Scope guard to panic when a check!() fails.
-///
-/// The panic is done by a lambda passed to the guard,
-/// so that the line information points to the check!() invocation.
-#[doc(hidden)]
-pub struct FailGuard<T: FnMut()>(pub T);
-
-impl<T: FnMut()> Drop for FailGuard<T> {
-	fn drop(&mut self) {
-		if !std::thread::panicking() {
-			(self.0)()
-		}
-	}
 }
