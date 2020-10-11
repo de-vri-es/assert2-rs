@@ -28,6 +28,7 @@
 //! The `capture!` macro is used to capture the value of an expression.
 //! It will include both the expression and the pretty-printed `Debug` form of the resulting value.
 //!
+//! The debug messages are added to all subsequent assertions and checks in the current scope.
 //!
 //! # Examples
 //!
