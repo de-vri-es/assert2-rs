@@ -1,6 +1,9 @@
-//! All-purpose [`assert!(...)`](macro.assert.html) and [`check!(...)`](macro.check.html) macros, inspired by [Catch2](https://github.com/catchorg/Catch2).
-//! There is also a [`debug_assert!(...)`](macro.debug_assert.html) macro that is disabled on optimized builds by default.
-//! As cherry on top there is a [`let_assert!(...)`](macro.let_assert.html) macro that lets you test a pattern while capturing parts of it.
+#![cfg_attr(feature = "doc-cfg", feature(doc_cfg))]
+#![allow(clippy::needless_lifetimes)]
+
+//! All-purpose [`assert!(...)`][assert!] and [`check!(...)`][check!] macros, inspired by [Catch2](https://github.com/catchorg/Catch2).
+//! The crate also exports a [`debug_assert!(...)`][debug_assert!] macro that is disabled on optimized builds by default.
+//! As cherry on top the crate alo has a [`let_assert!(...)`][let_assert!] macro that lets you test a pattern while capturing parts of it.
 //!
 //! # Why these macros?
 //!
@@ -19,7 +22,7 @@
 //! # Additional debug messages.
 //!
 //! You can add custom debug messages to be printed when an assertion or check fails
-//! with the [`info!(...)`](info!) and the [`capture!(...)`](capture!) macros.
+//! with the [`info!(...)`][info!] and the [`capture!(...)`][capture!] macros.
 //! The `info!` macro can be used to add arbitrary messages and supports formatting.
 //!
 //! The `capture!` macro is used to capture the value of an expression.
