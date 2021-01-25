@@ -22,4 +22,4 @@ quote = "1.0.2"
 syn = { version = "1.0.13", features = ["full", "visit", "visit-mut"] }
 
 [build-dependencies]
-rustc_version = "0.2.3"
+rustc_version = "0.3.3"
