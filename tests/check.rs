@@ -118,7 +118,7 @@ fn test_hygiene_bug() {
 		($val:expr, $expected:expr) => {
 			assert!($val * $val == $expected)
 		};
-	};
+	}
 
 	fn foo(a: i32, b: i32) -> i32 {
 		a + b
