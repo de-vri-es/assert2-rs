@@ -281,16 +281,19 @@ macro_rules! let_assert {
 
 #[doc(hidden)]
 #[macro_export]
-macro_rules! stringify {
+macro_rules! __assert2_stringify {
 	($e:expr) => {
 		// Stringifying as an expression gives nicer output
 		// than stringifying a raw list of token trees.
-		stringify!($e)
+		$crate::__assert2_core_stringify!($e)
 	};
 	($($t:tt)*) => {
-		stringify!($($t)*)
+		$crate::__assert2_core_stringify!($($t)*)
 	};
 }
+
+#[doc(hidden)]
+pub use core::stringify as __assert2_core_stringify;
 
 #[doc(hidden)]
 pub mod maybe_debug;

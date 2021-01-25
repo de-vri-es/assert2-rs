@@ -185,7 +185,7 @@ fn expression_to_string(crate_name: &syn::Path, ts: TokenStream, fragments: &mut
 
 	let _ = fragments;
 
-	quote!(#crate_name::stringify!(#ts))
+	quote!(#crate_name::__assert2_stringify!(#ts))
 }
 
 #[cfg(nightly)]
