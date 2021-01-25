@@ -1,3 +1,6 @@
+v0.3.4:
+  * Rename internal doc-hidden items to avoid issues with `use assert2::*`.
+
 v0.3.3:
   * Fix stringification of non-sized types.
 

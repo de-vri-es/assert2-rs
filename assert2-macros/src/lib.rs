@@ -60,16 +60,16 @@ fn check_binary_op(crate_name: syn::Path, macro_name: syn::Expr, expr: syn::Expr
 	quote! {
 		match (&(#left), &(#right)) {
 			(left, right) if !(left #op right) => {
-				use #crate_name::maybe_debug::{IsDebug, IsMaybeNotDebug};
-				let left = (&&#crate_name::maybe_debug::Wrap(left)).__assert2_maybe_debug().wrap(left);
-				let right = (&&#crate_name::maybe_debug::Wrap(right)).__assert2_maybe_debug().wrap(right);
-				#crate_name::print::FailedCheck {
+				use #crate_name::__assert2_impl::maybe_debug::{IsDebug, IsMaybeNotDebug};
+				let left = (&&#crate_name::__assert2_impl::maybe_debug::Wrap(left)).__assert2_maybe_debug().wrap(left);
+				let right = (&&#crate_name::__assert2_impl::maybe_debug::Wrap(right)).__assert2_maybe_debug().wrap(right);
+				#crate_name::__assert2_impl::print::FailedCheck {
 					macro_name: #macro_name,
 					file: file!(),
 					line: line!(),
 					column: column!(),
 					custom_msg: #custom_msg,
-					expression: #crate_name::print::BinaryOp {
+					expression: #crate_name::__assert2_impl::print::BinaryOp {
 						left: &left,
 						right: &right,
 						operator: #op_str,
@@ -97,13 +97,13 @@ fn check_bool_expr(crate_name: syn::Path, macro_name: syn::Expr, expr: syn::Expr
 	quote! {
 		match #expr {
 			false => {
-				#crate_name::print::FailedCheck {
+				#crate_name::__assert2_impl::print::FailedCheck {
 					macro_name: #macro_name,
 					file: file!(),
 					line: line!(),
 					column: column!(),
 					custom_msg: #custom_msg,
-					expression: #crate_name::print::BooleanExpr {
+					expression: #crate_name::__assert2_impl::print::BooleanExpr {
 						expression: #expr_str,
 					},
 					fragments: #fragments,
@@ -135,15 +135,15 @@ fn check_let_expr(crate_name: syn::Path, macro_name: syn::Expr, expr: syn::ExprL
 		match &(#expr) {
 			#pat => Ok(()),
 			value => {
-				use #crate_name::maybe_debug::{IsDebug, IsMaybeNotDebug};
-				let value = (&&#crate_name::maybe_debug::Wrap(value)).__assert2_maybe_debug().wrap(value);
-				#crate_name::print::FailedCheck {
+				use #crate_name::__assert2_impl::maybe_debug::{IsDebug, IsMaybeNotDebug};
+				let value = (&&#crate_name::__assert2_impl::maybe_debug::Wrap(value)).__assert2_maybe_debug().wrap(value);
+				#crate_name::__assert2_impl::print::FailedCheck {
 					macro_name: #macro_name,
 					file: file!(),
 					line: line!(),
 					column: column!(),
 					custom_msg: #custom_msg,
-					expression: #crate_name::print::MatchExpr {
+					expression: #crate_name::__assert2_impl::print::MatchExpr {
 						print_let: true,
 						value: &value,
 						pattern: #pat_str,

@@ -138,10 +138,7 @@
 //!  * `CLICOLOR_FORCE != 0`: ANSI colors should be enabled no matter what.
 
 #[doc(hidden)]
-pub use assert2_macros::check_impl;
-
-#[doc(hidden)]
-pub use assert2_macros::let_assert_impl;
+pub mod __assert2_impl;
 
 /// Assert that an expression evaluates to true or matches a pattern.
 ///
@@ -164,7 +161,7 @@ pub use assert2_macros::let_assert_impl;
 #[macro_export]
 macro_rules! assert {
 	($($tokens:tt)*) => {
-		if let Err(()) = $crate::check_impl!($crate, "assert", $($tokens)*) {
+		if let Err(()) = $crate::__assert2_impl::check_impl!($crate, "assert", $($tokens)*) {
 			panic!("assertion failed");
 		}
 	}
@@ -196,10 +193,10 @@ macro_rules! assert {
 #[macro_export]
 macro_rules! check {
 	($($tokens:tt)*) => {
-		let _guard = match $crate::check_impl!($crate, "check", $($tokens)*) {
+		let _guard = match $crate::__assert2_impl::check_impl!($crate, "check", $($tokens)*) {
 			Ok(_) => None,
 			Err(_) => {
-				Some($crate::FailGuard(|| panic!("check failed")))
+				Some($crate::__assert2_impl::FailGuard(|| panic!("check failed")))
 			},
 		};
 	}
@@ -216,7 +213,7 @@ macro_rules! check {
 macro_rules! debug_assert {
 	($($tokens:tt)*) => {
 		if ::core::cfg!(debug_assertions) {
-			if let Err(()) = $crate::check_impl!($crate, "debug_assert", $($tokens)*) {
+			if let Err(()) = $crate::__assert2_impl::check_impl!($crate, "debug_assert", $($tokens)*) {
 				panic!("assertion failed");
 			}
 		}
@@ -275,7 +272,7 @@ macro_rules! debug_assert {
 #[macro_export]
 macro_rules! let_assert {
 	($($tokens:tt)*) => {
-		$crate::let_assert_impl!($crate, "let_assert", $($tokens)*);
+		$crate::__assert2_impl::let_assert_impl!($crate, "let_assert", $($tokens)*);
 	}
 }
 
@@ -294,24 +291,3 @@ macro_rules! __assert2_stringify {
 
 #[doc(hidden)]
 pub use core::stringify as __assert2_core_stringify;
-
-#[doc(hidden)]
-pub mod maybe_debug;
-
-#[doc(hidden)]
-pub mod print;
-
-/// Scope guard to panic when a check!() fails.
-///
-/// The panic is done by a lambda passed to the guard,
-/// so that the line information points to the check!() invocation.
-#[doc(hidden)]
-pub struct FailGuard<T: FnMut()>(pub T);
-
-impl<T: FnMut()> Drop for FailGuard<T> {
-	fn drop(&mut self) {
-		if !std::thread::panicking() {
-			(self.0)()
-		}
-	}
-}

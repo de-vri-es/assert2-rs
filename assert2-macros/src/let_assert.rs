@@ -50,15 +50,15 @@ pub fn let_assert_impl(args: Args) -> TokenStream {
 			#pattern => (#non_mut_placeholders),
 			value => {
 				#[allow(unused)]
-				use #crate_name::maybe_debug::{IsDebug, IsMaybeNotDebug};
-				let value = (&&::assert2::maybe_debug::Wrap(&value)).__assert2_maybe_debug().wrap(&value);
-				#crate_name::print::FailedCheck {
+				use #crate_name::__assert2_impl::maybe_debug::{IsDebug, IsMaybeNotDebug};
+				let value = (&&#crate_name::__assert2_impl::maybe_debug::Wrap(&value)).__assert2_maybe_debug().wrap(&value);
+				#crate_name::__assert2_impl::print::FailedCheck {
 					macro_name: #macro_name,
 					file: file!(),
 					line: line!(),
 					column: column!(),
 					custom_msg: #custom_msg,
-					expression: #crate_name::print::MatchExpr {
+					expression: #crate_name::__assert2_impl::print::MatchExpr {
 						print_let: false,
 						value: &value,
 						pattern: #pat_str,
