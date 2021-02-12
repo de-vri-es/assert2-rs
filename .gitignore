@@ -1,5 +1,2 @@
 /target
 /Cargo.lock
-
-# Intellij Idea IDE settings folder
-.idea
