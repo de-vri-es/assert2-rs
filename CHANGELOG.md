@@ -1,3 +1,6 @@
+v0.3.5:
+  * Fix Windows compatibility by using `atty` crate for TTY detection.
+
 v0.3.4:
   * Rename internal doc-hidden items to avoid issues with `use assert2::*`.
 
