@@ -6,7 +6,10 @@ on:
 jobs:
   nightly:
     name: Build and test on nightly with all features
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout code
         uses: actions/checkout@master
@@ -28,7 +31,10 @@ jobs:
 
   stable:
     name: Build and test on stable without features
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
+      runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout code
         uses: actions/checkout@master
