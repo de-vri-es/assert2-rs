@@ -1,15 +1,8 @@
 use std::os::raw::c_int;
 use yansi::Paint;
+use atty::Stream;
 
 use std::fmt::Debug;
-
-extern "C" {
-	fn isatty(fd: c_int) -> c_int;
-}
-
-fn stderr_is_tty() -> bool {
-	unsafe { isatty(2) != 0 }
-}
 
 fn should_color() -> bool {
 	if std::env::var_os("CLICOLOR").map(|x| x == "0").unwrap_or(false) {
@@ -17,7 +10,7 @@ fn should_color() -> bool {
 	} else if std::env::var_os("CLICOLOR_FORCE").map(|x| x != "0").unwrap_or(false) {
 		true
 	} else {
-		stderr_is_tty()
+		atty::is(Stream::Stderr)
 	}
 }
 
