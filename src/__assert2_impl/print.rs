@@ -1,8 +1,6 @@
-use std::os::raw::c_int;
-use yansi::Paint;
 use atty::Stream;
-
 use std::fmt::Debug;
+use yansi::Paint;
 
 fn should_color() -> bool {
 	if std::env::var_os("CLICOLOR").map(|x| x == "0").unwrap_or(false) {
