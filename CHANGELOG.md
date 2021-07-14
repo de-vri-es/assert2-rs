@@ -1,3 +1,6 @@
+v0.3.6:
+  * Update dependencies.
+
 v0.3.5:
   * Fix Windows compatibility by using `atty` crate for TTY detection.
 
