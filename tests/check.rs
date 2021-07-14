@@ -1,3 +1,5 @@
+#![allow(clippy::eq_op)]
+
 use assert2::assert;
 use assert2::check;
 use assert2::debug_assert;
