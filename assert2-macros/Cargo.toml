@@ -8,7 +8,8 @@ authors = [
 	"Mara Bos <m-ou.se@m-ou.se>",
 ]
 
-edition = "2018"
+rust-version = "1.65"
+edition = "2021"
 
 repository = "https://github.com/de-vri-es/assert2-rs"
 documentation = "https://docs.rs/assert2"

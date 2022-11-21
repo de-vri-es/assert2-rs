@@ -8,7 +8,8 @@ authors = [
 	"Mara Bos <m-ou.se@m-ou.se>",
 ]
 
-edition = "2018"
+rust-version = "1.65"
+edition = "2021"
 
 repository = "https://github.com/de-vri-es/assert2-rs"
 documentation = "https://docs.rs/assert2"
@@ -20,3 +21,7 @@ categories = ["development-tools::debugging", "development-tools::testing"]
 assert2-macros = { version = "=0.3.6", path = "assert2-macros" }
 yansi = "0.5.0"
 atty = "0.2.14"
+
+[workspace]
+resolver = "2"
+members = ["assert2-macros"]
