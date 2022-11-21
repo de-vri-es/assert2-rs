@@ -1,3 +1,5 @@
+#![allow(clippy::nonminimal_bool)]
+
 use assert2::check;
 use assert2::let_assert;
 use std::fs::File;

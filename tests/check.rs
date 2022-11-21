@@ -1,4 +1,5 @@
 #![allow(clippy::eq_op)]
+#![allow(clippy::nonminimal_bool)]
 
 use assert2::assert;
 use assert2::check;
