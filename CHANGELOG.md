@@ -1,4 +1,4 @@
-Unreleased:
+v0.3.7 - 2022-11-21:
   * Bump required Rust version to 1.65 for `let ... else { }`.
   * Fix ambiguous patterns without captures in `let_assert!()`.
 
