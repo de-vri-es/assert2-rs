@@ -18,6 +18,12 @@ fn basic_match_ref() {
 }
 
 #[test]
+fn basic_match_no_placeholders() {
+	let_assert!(None = Some(10).filter(|_| false));
+	let_assert!(None = &Some(10).filter(|_| false));
+}
+
+#[test]
 fn anonymous_placeholders() {
 	// Make sure _ placeholders are ignored.
 	let_assert!((_, _, _) = (10, 11, 12));
@@ -71,8 +77,9 @@ macro_rules! test_panic {
 	}
 }
 
-test_panic!(panic_let_assert1, let_assert!(Ok(_x) = Result::<i32, i32>::Err(10)));
+test_panic!(panic_let_assert_err_instead_of_ok, let_assert!(Ok(_x) = Result::<i32, i32>::Err(10)));
 test_panic!(
-	panic_let_assert2,
+	panic_let_assert_err_instead_of_ok_with_message,
 	let_assert!(Ok(_x) = Result::<i32, i32>::Err(10), "{}", "rust broke")
 );
+test_panic!(panic_let_assert_no_capture, let_assert!(None = Some(10)));
