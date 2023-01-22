@@ -1,4 +1,4 @@
-main:
+v0.3.8 - 2023-01-22:
   * Reduce risk of interleaved output of concurrent tests when running tests with `--no-capture`.
   * Fix minimum required `proc-macro2` version.
 
