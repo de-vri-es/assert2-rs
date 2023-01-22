@@ -1,5 +1,6 @@
 main:
   * Reduce risk of interleaved output of concurrent tests when running tests with `--no-capture`.
+  * Fix minimum required `proc-macro2` version.
 
 v0.3.7 - 2022-11-21:
   * Bump required Rust version to 1.65 for `let ... else { }`.
