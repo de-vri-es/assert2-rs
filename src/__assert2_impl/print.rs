@@ -32,8 +32,8 @@ pub struct FailedCheck<'a, T> {
 }
 
 pub trait CheckExpression {
-	fn print_expression(&self, print_message: &mut  String);
-	fn print_expansion(&self, print_message: &mut String);
+	fn write_expression(&self, buffer: &mut  String);
+	fn write_expansion(&self, buffer: &mut String);
 }
 
 pub struct BinaryOp<'a, Left, Right> {
@@ -70,39 +70,44 @@ impl<'a, T: CheckExpression> FailedCheck<'a, T> {
 			name = Paint::magenta(self.macro_name),
 			open = Paint::magenta("!("),
 		).unwrap();
-		self.expression.print_expression(&mut print_message);
+		self.expression.write_expression(&mut print_message);
 		writeln!(&mut print_message, " {}", Paint::magenta(")")).unwrap();
 		if !self.fragments.is_empty() {
 			writeln!(&mut print_message, "with:").unwrap();
 			for (name, expansion) in self.fragments {
-				writeln!(&mut print_message, "  {} {} {}", Paint::magenta(name), Paint::blue("=").bold(), expansion).unwrap();
+				writeln!(
+					&mut print_message,
+					"  {} {} {}",
+					Paint::magenta(name), Paint::blue("=").bold(),
+					expansion
+				).unwrap();
 			}
 		}
 		writeln!(&mut print_message, "with expansion:").unwrap();
 		write!(&mut print_message, "  ").unwrap();
-		self.expression.print_expansion(&mut print_message);
+		self.expression.write_expansion(&mut print_message);
 		writeln!(&mut print_message, ).unwrap();
 		if let Some(msg) = self.custom_msg {
 			writeln!(&mut print_message, "with message:").unwrap();
 			writeln!(&mut print_message, "  {}", Paint::default(msg).bold()).unwrap();
 		}
 		writeln!(&mut print_message).unwrap();
-		
+
 		eprint!("{}", print_message);
 	}
 }
 
 #[rustfmt::skip]
 impl<Left: Debug, Right: Debug> CheckExpression for BinaryOp<'_, Left, Right> {
-	fn print_expression(&self, print_message: &mut  String) {
-		write!(print_message, "{left} {op} {right}",
+	fn write_expression(&self, buffer: &mut  String) {
+		write!(buffer, "{left} {op} {right}",
 			left  = Paint::cyan(self.left_expr),
 			op    = Paint::blue(self.operator).bold(),
 			right = Paint::yellow(self.right_expr),
 		).unwrap();
 	}
-	fn print_expansion(&self, print_message: &mut  String) {
-		write!(print_message, "{left:?} {op} {right:?}",
+	fn write_expansion(&self, buffer: &mut  String) {
+		write!(buffer, "{left:?} {op} {right:?}",
 			left  = Paint::cyan(self.left),
 			op    = Paint::blue(self.operator).bold(),
 			right = Paint::yellow(self.right),
@@ -112,27 +117,27 @@ impl<Left: Debug, Right: Debug> CheckExpression for BinaryOp<'_, Left, Right> {
 
 #[rustfmt::skip]
 impl CheckExpression for BooleanExpr<'_> {
-	fn print_expression(&self, print_message: &mut  String) {
+	fn write_expression(&self, print_message: &mut  String) {
 		write!(print_message, "{}", Paint::cyan(self.expression)).unwrap();
 	}
-	fn print_expansion(&self, print_message: &mut String) {
+	fn write_expansion(&self, print_message: &mut String) {
 		write!(print_message, "{:?}", Paint::cyan(false)).unwrap();
 	}
 }
 
 #[rustfmt::skip]
 impl<Value: Debug> CheckExpression for MatchExpr<'_, Value> {
-	fn print_expression(&self, print_message: &mut String) {
+	fn write_expression(&self, buffer: &mut String) {
 		if self.print_let {
-			write!(print_message, "{} ", Paint::blue("let").bold()).unwrap();
+			write!(buffer, "{} ", Paint::blue("let").bold()).unwrap();
 		}
-		write!(print_message, "{pat} {eq} {expr}",
+		write!(buffer, "{pat} {eq} {expr}",
 			pat  = Paint::cyan(self.pattern),
 			eq   = Paint::blue("=").bold(),
 			expr = Paint::yellow(self.expression),
 		).unwrap();
 	}
-	fn print_expansion(&self, print_message: &mut String) {
+	fn write_expansion(&self, print_message: &mut String) {
 		write!(print_message, "{:?}", Paint::yellow(self.value)).unwrap();
 	}
 }
