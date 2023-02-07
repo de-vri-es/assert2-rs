@@ -1,5 +1,3 @@
-#![cfg_attr(nightly, feature(proc_macro_span))]
-
 //! This macro contains only private procedural macros.
 //! See the documentation for [`assert2`](https://docs.rs/assert2/) for the public API.
 
@@ -158,13 +156,10 @@ fn check_let_expr(crate_name: syn::Path, macro_name: syn::Expr, expr: syn::ExprL
 }
 
 fn tokens_to_string(ts: TokenStream, fragments: &mut Fragments) -> TokenStream {
-	#[cfg(nightly)]
-	{
-		use syn::spanned::Spanned;
-		find_macro_fragments(ts.clone(), fragments);
-		if let Some(s) = ts.span().unwrap().source_text() {
-			return quote!(#s);
-		}
+	use syn::spanned::Spanned;
+	find_macro_fragments(ts.clone(), fragments);
+	if let Some(s) = ts.span().unwrap().source_text() {
+		return quote!(#s);
 	}
 
 	let _ = fragments;
@@ -174,13 +169,10 @@ fn tokens_to_string(ts: TokenStream, fragments: &mut Fragments) -> TokenStream {
 }
 
 fn expression_to_string(crate_name: &syn::Path, ts: TokenStream, fragments: &mut Fragments) -> TokenStream {
-	#[cfg(nightly)]
-	{
-		use syn::spanned::Spanned;
-		find_macro_fragments(ts.clone(), fragments);
-		if let Some(s) = ts.span().unwrap().source_text() {
-			return quote!(#s);
-		}
+	use syn::spanned::Spanned;
+	find_macro_fragments(ts.clone(), fragments);
+	if let Some(s) = ts.span().unwrap().source_text() {
+		return quote!(#s);
 	}
 
 	let _ = fragments;
@@ -188,7 +180,6 @@ fn expression_to_string(crate_name: &syn::Path, ts: TokenStream, fragments: &mut
 	quote!(#crate_name::__assert2_stringify!(#ts))
 }
 
-#[cfg(nightly)]
 fn find_macro_fragments(ts: TokenStream, f: &mut Fragments) {
 	use syn::spanned::Spanned;
 	use proc_macro2::{Delimiter, TokenTree};

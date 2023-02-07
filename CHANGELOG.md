@@ -1,3 +1,7 @@
+main:
+  * Bump minimum Rust version to 1.66.
+  * Remove use of `proc_macro_span` feature now that `proc_macro::Span::source_text` has been stabilized.
+
 v0.3.8 - 2023-01-22:
   * Reduce risk of interleaved output of concurrent tests when running tests with `--no-capture`.
   * Fix minimum required `proc-macro2` version.
