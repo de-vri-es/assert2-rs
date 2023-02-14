@@ -1,4 +1,4 @@
-main:
+v0.3.10 - 2023-02-14:
   * Replace unmaintained `atty` dependency with `is-terminal`.
 
 v0.3.9 - 2023-02-07:
