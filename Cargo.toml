@@ -20,7 +20,7 @@ categories = ["development-tools::debugging", "development-tools::testing"]
 [dependencies]
 assert2-macros = { version = "=0.3.9", path = "assert2-macros" }
 yansi = "0.5.0"
-atty = "0.2.14"
+is-terminal = "0.4.3"
 
 [workspace]
 resolver = "2"
