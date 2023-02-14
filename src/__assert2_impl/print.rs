@@ -1,4 +1,3 @@
-use atty::Stream;
 use std::fmt::Debug;
 use yansi::Paint;
 use std::fmt::Write;
@@ -9,7 +8,8 @@ fn should_color() -> bool {
 	} else if std::env::var_os("CLICOLOR_FORCE").map(|x| x != "0").unwrap_or(false) {
 		true
 	} else {
-		atty::is(Stream::Stderr)
+		use is_terminal::IsTerminal;
+		std::io::stderr().is_terminal()
 	}
 }
 
