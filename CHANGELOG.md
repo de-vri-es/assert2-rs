@@ -1,3 +1,6 @@
+main:
+  * Remove use of `source_text()` on stable since current it gives the source text of only one token tree.
+
 v0.3.10 - 2023-02-14:
   * Replace unmaintained `atty` dependency with `is-terminal`.
 
