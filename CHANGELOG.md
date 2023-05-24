@@ -1,4 +1,4 @@
-main:
+v0.3.11 - 2023-05-24:
   * Remove use of `source_text()` on stable since current it gives the source text of only one token tree.
 
 v0.3.10 - 2023-02-14:
