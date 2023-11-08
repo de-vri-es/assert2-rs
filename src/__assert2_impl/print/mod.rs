@@ -2,24 +2,11 @@ use std::fmt::Debug;
 use yansi::Paint;
 use std::fmt::Write;
 
-fn should_color() -> bool {
-	if std::env::var_os("CLICOLOR").map(|x| x == "0").unwrap_or(false) {
-		false
-	} else if std::env::var_os("CLICOLOR_FORCE").map(|x| x != "0").unwrap_or(false) {
-		true
-	} else {
-		use is_terminal::IsTerminal;
-		std::io::stderr().is_terminal()
-	}
-}
+mod diff;
+use diff::{MultiLineDiff, SingleLineDiff};
 
-fn set_color() {
-	if should_color() {
-		Paint::enable()
-	} else {
-		Paint::disable()
-	}
-}
+mod options;
+use options::{AssertOptions, ExpansionFormat};
 
 pub struct FailedCheck<'a, T> {
 	pub macro_name: &'a str,
@@ -58,7 +45,6 @@ pub struct MatchExpr<'a, Value> {
 impl<'a, T: CheckExpression> FailedCheck<'a, T> {
 	#[rustfmt::skip]
 	pub fn print(&self) {
-		set_color();
 		let mut print_message = String::new();
 		writeln!(&mut print_message, "{msg} at {file}:{line}:{column}:",
 			msg    = Paint::red("Assertion failed").bold(),
@@ -83,8 +69,6 @@ impl<'a, T: CheckExpression> FailedCheck<'a, T> {
 				).unwrap();
 			}
 		}
-		writeln!(&mut print_message, "with expansion:").unwrap();
-		write!(&mut print_message, "  ").unwrap();
 		self.expression.write_expansion(&mut print_message);
 		writeln!(&mut print_message, ).unwrap();
 		if let Some(msg) = self.custom_msg {
@@ -99,19 +83,44 @@ impl<'a, T: CheckExpression> FailedCheck<'a, T> {
 
 #[rustfmt::skip]
 impl<Left: Debug, Right: Debug> CheckExpression for BinaryOp<'_, Left, Right> {
-	fn write_expression(&self, buffer: &mut  String) {
-		write!(buffer, "{left} {op} {right}",
+	fn write_expression(&self, print_message: &mut  String) {
+		write!(print_message, "{left} {op} {right}",
 			left  = Paint::cyan(self.left_expr),
 			op    = Paint::blue(self.operator).bold(),
 			right = Paint::yellow(self.right_expr),
 		).unwrap();
 	}
-	fn write_expansion(&self, buffer: &mut  String) {
-		write!(buffer, "{left:?} {op} {right:?}",
-			left  = Paint::cyan(self.left),
-			op    = Paint::blue(self.operator).bold(),
-			right = Paint::yellow(self.right),
-		).unwrap();
+
+	fn write_expansion(&self, print_message: &mut String) {
+		let style = AssertOptions::get();
+
+		if !style.expand.force_pretty() {
+			let left = format!("{:?}", self.left);
+			let right = format!("{:?}", self.right);
+			if style.expand.force_compact() || ExpansionFormat::is_compact_good(&[&left, &right]) {
+				writeln!(print_message, "with expansion:").unwrap();
+				let diff = SingleLineDiff::new(&left, &right);
+				print_message.push_str("  ");
+				diff.write_left(print_message);
+				write!(print_message, " {} ", Paint::blue(self.operator)).unwrap();
+				diff.write_right(print_message);
+				if left == right {
+					if self.operator == "==" {
+						write!(print_message, "\n{}", Paint::red("Note: Left and right compared as unequal, but the Debug output of left and right is identical!")).unwrap();
+					} else {
+						write!(print_message, "\n{}", Paint::default("Note: Debug output of left and right is identical.").bold()).unwrap();
+					}
+				}
+				return
+			}
+		}
+
+		// Compact expansion was disabled or not compact enough, so go full-on pretty debug format.
+		let left = format!("{:#?}", self.left);
+		let right = format!("{:#?}", self.right);
+		writeln!(print_message, "with diff:").unwrap();
+		MultiLineDiff::new(&left, &right)
+			.write_interleaved(print_message);
 	}
 }
 
@@ -120,8 +129,10 @@ impl CheckExpression for BooleanExpr<'_> {
 	fn write_expression(&self, print_message: &mut  String) {
 		write!(print_message, "{}", Paint::cyan(self.expression)).unwrap();
 	}
+
 	fn write_expansion(&self, print_message: &mut String) {
-		write!(print_message, "{:?}", Paint::cyan(false)).unwrap();
+		writeln!(print_message, "with expansion:").unwrap();
+		write!(print_message, "  {:?}", Paint::cyan(false)).unwrap();
 	}
 }
 
@@ -137,7 +148,15 @@ impl<Value: Debug> CheckExpression for MatchExpr<'_, Value> {
 			expr = Paint::yellow(self.expression),
 		).unwrap();
 	}
+
 	fn write_expansion(&self, print_message: &mut String) {
-		write!(print_message, "{:?}", Paint::yellow(self.value)).unwrap();
+		writeln!(print_message, "with expansion:").unwrap();
+		let [value] = AssertOptions::get().expand.expand_all([&self.value]);
+		let message = Paint::yellow(value).to_string();
+		for line in message.lines() {
+			writeln!(print_message, "  {line}").unwrap();
+		}
+		// Remove last newline.
+		print_message.pop();
 	}
 }

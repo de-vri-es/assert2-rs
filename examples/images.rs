@@ -12,4 +12,25 @@ fn main() {
 
 	let_assert!(Err(e) = File::open("/non/existing/file"));
 	check!(e.kind() == ErrorKind::PermissionDenied);
+
+	#[derive(Debug, Eq, PartialEq)]
+	struct Foo {
+		lorum: &'static str,
+		ipsum: i32,
+		dolor: Result<&'static str, ()>,
+	}
+
+	let a = Foo {
+		lorum: "Hello world!",
+		ipsum: 42,
+		dolor: Ok("hey"),
+	};
+
+	let b = Foo {
+		lorum: "Hello wrold!",
+		ipsum: 42,
+		dolor: Ok("hey ho"),
+	};
+
+	check!(a == b);
 }
