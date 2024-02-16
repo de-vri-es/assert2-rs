@@ -14,23 +14,27 @@ fn main() {
 	check!(e.kind() == ErrorKind::PermissionDenied);
 
 	#[derive(Debug, Eq, PartialEq)]
-	struct Foo {
-		lorum: &'static str,
-		ipsum: i32,
-		dolor: Result<&'static str, ()>,
+	struct Pet {
+		name: String,
+		age: u32,
+		kind: String,
+		shaved: bool,
 	}
 
-	let a = Foo {
-		lorum: "Hello world!",
-		ipsum: 42,
-		dolor: Ok("hey"),
+	let scrappy = Pet {
+		name: "Scrappy".into(),
+		age: 7,
+		kind: "Bearded Collies".into(),
+		shaved: false,
 	};
 
-	let b = Foo {
-		lorum: "Hello wrold!",
-		ipsum: 42,
-		dolor: Ok("hey ho"),
+	let coco = Pet {
+		name: "Coco".into(),
+		age: 7,
+		kind: "Bearded Collies".into(),
+		shaved: true,
 	};
+	check!(scrappy == coco);
 
-	check!(a == b);
+	check!(Some(1) == Some(11));
 }
