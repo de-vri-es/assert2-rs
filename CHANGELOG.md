@@ -1,4 +1,4 @@
-main:
+v0.3.12 - 2024-02-17:
   * Automatically choose between pretty or compact `Debug` output, unless overridden.
   * Print a diff for failed binary comparisons.
   * Allow end-users to change the output of `assert2` with the `ASSERT2` environment variable.
