@@ -1,0 +1,208 @@
+use std::fmt::Write;
+use yansi::Paint;
+
+/// A line diff between two inputs.
+pub struct MultiLineDiff<'a> {
+	/// The actual diff results from the [`diff`] crate.
+	line_diffs: Vec<diff::Result<&'a str>>,
+}
+
+impl<'a> MultiLineDiff<'a> {
+	/// Create a new diff between a left and right input.
+	pub fn new(left: &'a str, right: &'a str) -> Self {
+		Self {
+			line_diffs: diff::lines(left, right),
+		}
+	}
+
+	/// Write the left and right input interleaved with eachother, highlighting the differences between the two.
+	pub fn write_interleaved(&self, buffer: &mut String) {
+		let mut removed = None;
+		for diff in &self.line_diffs {
+			match *diff {
+				diff::Result::Left(left) => {
+					if let Some(prev) = removed.take() {
+						writeln!(buffer, "{}", Paint::cyan(format_args!("< {prev}"))).unwrap();
+					}
+					removed = Some(left);
+				},
+				diff::Result::Right(right) => {
+					if let Some(left) = removed.take() {
+						let diff = SingleLineDiff::new(left, right);
+						write!(buffer, "{} ", diff.left_highlights.normal.paint("<")).unwrap();
+						diff.write_left(buffer);
+						write!(buffer, "\n{} ", diff.right_highlights.normal.paint(">")).unwrap();
+						diff.write_right(buffer);
+						buffer.push('\n');
+					} else {
+						writeln!(buffer, "{}", Paint::yellow(format_args!("> {right}"))).unwrap();
+					}
+				},
+				diff::Result::Both(text, _) => {
+					if let Some(prev) = removed.take() {
+						writeln!(buffer, "{}", Paint::cyan(format_args!("< {prev}"))).unwrap();
+					}
+					writeln!(buffer, "  {}", Paint::default(text).dimmed()).unwrap();
+				},
+			}
+		}
+		// Remove last newline.
+		buffer.pop();
+	}
+}
+
+/// A character/word based diff between two single-line inputs.
+pub struct SingleLineDiff<'a> {
+	/// The left line.
+	left: &'a str,
+
+	/// The right line.
+	right: &'a str,
+
+	/// The highlighting for the left line.
+	left_highlights: Highlighter,
+
+	/// The highlighting for the right line.
+	right_highlights: Highlighter,
+}
+
+impl<'a> SingleLineDiff<'a> {
+	/// Create a new word diff between two input lines.
+	pub fn new(left: &'a str, right: &'a str) -> Self {
+		let left_words = Self::split_words(left);
+		let right_words = Self::split_words(right);
+		let diffs = diff::slice(&left_words, &right_words);
+
+		let mut left_highlights = Highlighter::new(yansi::Color::Cyan);
+		let mut right_highlights = Highlighter::new(yansi::Color::Yellow);
+		for diff in &diffs {
+			match diff {
+				diff::Result::Left(left) => {
+					left_highlights.push(left.len(), true);
+				},
+				diff::Result::Right(right) => {
+					right_highlights.push(right.len(), true);
+				},
+				diff::Result::Both(left, right) => {
+					left_highlights.push(left.len(), false);
+					right_highlights.push(right.len(), false);
+				}
+			}
+		}
+
+		Self {
+			left,
+			right,
+			left_highlights,
+			right_highlights,
+		}
+	}
+
+	/// Write the left line with highlighting.
+	///
+	/// This does not write a line break to the buffer.
+	pub fn write_left(&self, buffer: &mut String) {
+		self.left_highlights.write_highlighted(buffer, self.left);
+	}
+
+	/// Write the right line with highlighting.
+	///
+	/// This does not write a line break to the buffer.
+	pub fn write_right(&self, buffer: &mut String) {
+		self.right_highlights.write_highlighted(buffer, self.right);
+	}
+
+	/// Split an input line into individual words.
+	fn split_words(mut input: &str) -> Vec<&str> {
+		/// Check if there should be a word break between character `a` and `b`.
+		fn is_break_point(a: char, b: char) -> bool {
+			if a.is_alphabetic() {
+				!b.is_alphabetic() || (a.is_lowercase() && !b.is_lowercase())
+			} else if a.is_ascii_digit() {
+				!b.is_ascii_digit()
+			} else if a.is_whitespace() {
+				!b.is_whitespace()
+			} else {
+				true
+			}
+		}
+
+		let mut output = Vec::new();
+		while !input.is_empty() {
+			let split = input.chars()
+				.zip(input.char_indices().skip(1))
+				.find_map(|(a, (pos, b))| Some(pos).filter(|_| is_break_point(a, b)))
+				.unwrap_or(input.len());
+			let (head, tail) = input.split_at(split);
+			output.push(head);
+			input = tail;
+		}
+		output
+	}
+}
+
+/// Highlighter that incrementaly builds a range of alternating styles.
+struct Highlighter {
+	/// The ranges of alternating highlighting.
+	///
+	/// If the boolean is true, the range should be printed with the `highlight` style.
+	/// If the boolean is false, the range should be printed with the `normal` style.
+	ranges: Vec<(bool, std::ops::Range<usize>)>,
+
+	/// The total length of the highlighted ranges (in bytes, not characters or terminal cells).
+	total_highlighted: usize,
+
+	/// The style for non-highlighted words.
+	normal: yansi::Style,
+
+	/// The style for highlighted words.
+	highlight: yansi::Style,
+}
+
+impl Highlighter {
+	/// Create a new highlighter with the given color.
+	fn new(color: yansi::Color) -> Self {
+		let normal = yansi::Style::new(color);
+		let highlight = yansi::Style::new(yansi::Color::Black).bg(color).bold();
+		Self {
+			ranges: Vec::new(),
+			total_highlighted: 0,
+			normal,
+			highlight,
+		}
+	}
+
+	/// Push a range to the end of the highlighter.
+	fn push(&mut self, len: usize, highlight: bool) {
+		if highlight {
+			self.total_highlighted += len;
+		}
+		if let Some(last) = self.ranges.last_mut() {
+			if last.0 == highlight {
+				last.1.end += len;
+			} else {
+				let start = last.1.end;
+				self.ranges.push((highlight, start..start + len));
+			}
+		} else {
+			self.ranges.push((highlight, 0..len))
+		}
+	}
+
+	/// Write the data using the highlight ranges.
+	fn write_highlighted(&self, buffer: &mut String, data: &str) {
+		let not_highlighted = data.len() - self.total_highlighted;
+		if not_highlighted < self.total_highlighted + self.total_highlighted / 2 {
+			write!(buffer, "{}", self.normal.paint(data)).unwrap();
+		} else {
+			for (highlight, range) in self.ranges.iter().cloned() {
+				let piece = if highlight {
+					self.highlight.paint(&data[range])
+				} else {
+					self.normal.paint(&data[range])
+				};
+				write!(buffer, "{}", piece).unwrap();
+			}
+		}
+	}
+}

@@ -1,6 +1,6 @@
 [package]
 name = "assert2"
-description = "assert!(...) and check!(...) macros inspired by Catch2"
+description = "assert!(...) and check!(...) macros inspired by Catch2, now with diffs!"
 version = "0.3.11"
 license = "BSD-2-Clause"
 authors = [
@@ -21,6 +21,7 @@ categories = ["development-tools::debugging", "development-tools::testing"]
 assert2-macros = { version = "=0.3.11", path = "assert2-macros" }
 yansi = "0.5.0"
 is-terminal = "0.4.3"
+diff = "0.1.13"
 
 [workspace]
 resolver = "2"

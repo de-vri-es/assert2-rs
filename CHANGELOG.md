@@ -1,5 +1,11 @@
+main:
+  * Automatically choose between pretty or compact `Debug` output, unless overridden.
+  * Print a diff for failed binary comparisons.
+  * Allow end-users to change the output of `assert2` with the `ASSERT2` environment variable.
+  * Support the `NO_COLOR` environment variable in addition to `CLICOLOR`.
+
 v0.3.11 - 2023-05-24:
-  * Remove use of `source_text()` on stable since current it gives the source text of only one token tree.
+  * Remove use of `source_text()` on stable since currently it gives the source text of only one token tree.
 
 v0.3.10 - 2023-02-14:
   * Replace unmaintained `atty` dependency with `is-terminal`.
