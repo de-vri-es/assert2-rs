@@ -24,17 +24,17 @@ fn main() {
 	let scrappy = Pet {
 		name: "Scrappy".into(),
 		age: 7,
-		kind: "Bearded Collies".into(),
+		kind: "Bearded Collie".into(),
 		shaved: false,
 	};
 
 	let coco = Pet {
 		name: "Coco".into(),
 		age: 7,
-		kind: "Bearded Collies".into(),
+		kind: "Bearded Collie".into(),
 		shaved: true,
 	};
 	check!(scrappy == coco);
 
-	check!(Some(1) == Some(11));
+	check!((3, Some(4)) == [1, 2, 3].iter().size_hint());
 }

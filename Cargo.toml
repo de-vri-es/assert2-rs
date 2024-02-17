@@ -1,6 +1,6 @@
 [package]
 name = "assert2"
-description = "assert!(...) and check!(...) macros inspired by Catch2"
+description = "assert!(...) and check!(...) macros inspired by Catch2, now with diffs!"
 version = "0.3.11"
 license = "BSD-2-Clause"
 authors = [

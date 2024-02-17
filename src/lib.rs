@@ -9,15 +9,18 @@
 //!
 //! These macros offer some benefits over the assertions from the standard library:
 //!   * The macros parse your expression to detect comparisons and adjust the error message accordingly.
-//!     No more `assert_eq` or `assert_ne`, just write `assert!(1 + 1 == 2)`, or even `assert!(1 + 1 > 1)`!
+//!     No more `assert_eq!(a, b)` or `assert_ne!(c, d)`, just write `assert!(1 + 1 == 2)`, or even `assert!(1 + 1 > 1)`!
 //!   * You can test for pattern matches: `assert!(let Err(_) = File::open("/non/existing/file"))`.
 //!   * You can capture parts of the pattern for further testing by using the `let_assert!(...)` macro.
 //!   * The `check` macro can be used to perform multiple checks before panicking.
-//!   * The macros provide more information when the assertion fails.
-//!   * Colored failure messages!
+//!   * The macros provide more information than the standard `std::assert!()` when the assertion fails.
+//!   * Colored failure messages with diffs!
 //!
 //! The macros also accept additional arguments for a custom message, so it is fully compatible with `std::assert`.
-//! That means you don't have to worry about overwriting the standard `assert` with `use assert2::assert`.
+//! This means that you can import the macro as a drop in replacement:
+//! ```
+//! use assert2::assert;
+//! ```
 //!
 //! # Examples
 //!
@@ -26,16 +29,47 @@
 //! check!(6 + 1 <= 2 * 3);
 //! ```
 //!
-//! ![Assertion error](https://github.com/de-vri-es/assert2-rs/raw/2db44c46e4580ec87d2881a698815e1ec5fcdf3f/binary-operator.png)
+//! ![Output](https://raw.githubusercontent.com/de-vri-es/assert2-rs/ba98984a32d6381e6710e34eb1fb83e65e851236/binary-operator.png)
 //!
 //! ----------
 //!
 //! ```should_panic
 //! # use assert2::check;
-//! check!(true && false);
+//! # use assert2::let_assert;
+//! # use std::fs::File;
+//! # use std::io::ErrorKind;
+//! # #[derive(Debug, Eq, PartialEq)]
+//! # struct Pet {
+//! #   name: String,
+//! #   age: u32,
+//! #   kind: String,
+//! #   shaved: bool,
+//! # }
+//! # let scrappy = Pet {
+//! #   name: "Scrappy".into(),
+//! #   age: 7,
+//! #   kind: "Bearded Collie".into(),
+//! #   shaved: false,
+//! # };
+//! # let coco = Pet {
+//! #   name: "Coco".into(),
+//! #   age: 7,
+//! #   kind: "Bearded Collie".into(),
+//! #   shaved: true,
+//! # };
+//! check!(scrappy == coco);
 //! ```
 //!
-//! ![Assertion error](https://github.com/de-vri-es/assert2-rs/raw/2db44c46e4580ec87d2881a698815e1ec5fcdf3f/boolean-expression.png)
+//! ![Output](https://raw.githubusercontent.com/de-vri-es/assert2-rs/54ee3141e9b23a0d9038697d34f29f25ef7fe810/multiline-diff.png)
+//!
+//! ----------
+//!
+//! ```should_panic
+//! # use assert2::check;
+//! check!((3, Some(4)) == [1, 2, 3].iter().size_hint());
+//! ```
+//!
+//! ![Output](https://raw.githubusercontent.com/de-vri-es/assert2-rs/54ee3141e9b23a0d9038697d34f29f25ef7fe810/single-line-diff.png)
 //!
 //! ----------
 //!
@@ -45,7 +79,7 @@
 //! check!(let Ok(_) = File::open("/non/existing/file"));
 //! ```
 //!
-//! ![Assertion error](https://github.com/de-vri-es/assert2-rs/raw/2db44c46e4580ec87d2881a698815e1ec5fcdf3f/pattern-match.png)
+//! ![Output](https://raw.githubusercontent.com/de-vri-es/assert2-rs/54ee3141e9b23a0d9038697d34f29f25ef7fe810/pattern-match.png)
 //!
 //! ----------
 //!
@@ -57,7 +91,8 @@
 //! let_assert!(Err(e) = File::open("/non/existing/file"));
 //! check!(e.kind() == ErrorKind::PermissionDenied);
 //! ```
-//! ![Assertion error](https://github.com/de-vri-es/assert2-rs/raw/573a686d1f19e0513cb235df38d157defdadbec0/let-assert.png)
+//!
+//! ![Output](https://github.com/de-vri-es/assert2-rs/blob/54ee3141e9b23a0d9038697d34f29f25ef7fe810/let-assert.png?raw=true)
 //!
 //! # `assert` vs `check`
 //! The crate provides two macros: `check!(...)` and `assert!(...)`.
@@ -127,15 +162,28 @@
 //! # }
 //! ```
 //!
+//! # Controlling the output format.
 //!
-//! # Controlling colored output.
+//! As an end-user, you can influence the way that `assert2` formats failed assertions by changing the `ASSERT2` environment variable.
+//! You can specify any combination of options, separated by a comma.
+//! The supported options are:
+//! * `auto`: Automatically select the compact or pretty `Debug` format for an assertion based on the length (default).
+//! * `pretty`: Always use the pretty `Debug` format for assertion messages (`{:#?}`).
+//! * `compact`: Always use the compact `Debug` format for assertion messages (`{:?}`).
+//! * `no-color`: Disable colored output, even when the output is going to a terminal.
+//! * `color`: Enable colored output, even when the output is not going to a terminal.
 //!
-//! Colored output can be controlled using environment variables,
-//! as per the [clicolors spec](https://bixense.com/clicolors/):
+//! For example, you can run the following command to force the use of the compact `Debug` format with colored output:
+//! ```shell
+//! ASSERT2=compact,color cargo test
+//! ```
 //!
-//!  * `CLICOLOR != 0`: ANSI colors are supported and should be used when the program isn't piped.
-//!  * `CLICOLOR == 0`: Don't output ANSI color escape codes.
-//!  * `CLICOLOR_FORCE != 0`: ANSI colors should be enabled no matter what.
+//! If neither the `color` or the `no-color` options are set,
+//! then `assert2` follows the [clicolors specification](https://bixense.com/clicolors/):
+//!
+//!  * `NO_COLOR != 0` or `CLICOLOR == 0`: Write plain output without color codes.
+//!  * `CLICOLOR != 0`: Write colored output when the output is going to a terminal.
+//!  * `CLICOLOR_FORCE != 0`:  Write colored output even when it is not going to a terminal.
 
 #[doc(hidden)]
 pub mod __assert2_impl;
