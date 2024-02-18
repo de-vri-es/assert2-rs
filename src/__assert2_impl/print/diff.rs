@@ -4,50 +4,105 @@ use yansi::Paint;
 /// A line diff between two inputs.
 pub struct MultiLineDiff<'a> {
 	/// The actual diff results from the [`diff`] crate.
-	line_diffs: Vec<diff::Result<&'a str>>,
+	line_diffs: Vec<LineDiff<'a>>,
 }
 
 impl<'a> MultiLineDiff<'a> {
 	/// Create a new diff between a left and right input.
 	pub fn new(left: &'a str, right: &'a str) -> Self {
+		let line_diffs = LineDiff::from_diff(diff::lines(left, right));
 		Self {
-			line_diffs: diff::lines(left, right),
+			line_diffs
 		}
 	}
 
 	/// Write the left and right input interleaved with eachother, highlighting the differences between the two.
 	pub fn write_interleaved(&self, buffer: &mut String) {
-		let mut removed = None;
 		for diff in &self.line_diffs {
 			match *diff {
-				diff::Result::Left(left) => {
-					if let Some(prev) = removed.take() {
-						writeln!(buffer, "{}", Paint::cyan(format_args!("< {prev}"))).unwrap();
-					}
-					removed = Some(left);
+				LineDiff::LeftOnly(left) => {
+					writeln!(buffer, "{}", Paint::cyan(format_args!("< {left}"))).unwrap();
 				},
-				diff::Result::Right(right) => {
-					if let Some(left) = removed.take() {
-						let diff = SingleLineDiff::new(left, right);
-						write!(buffer, "{} ", diff.left_highlights.normal.paint("<")).unwrap();
-						diff.write_left(buffer);
-						write!(buffer, "\n{} ", diff.right_highlights.normal.paint(">")).unwrap();
-						diff.write_right(buffer);
-						buffer.push('\n');
-					} else {
-						writeln!(buffer, "{}", Paint::yellow(format_args!("> {right}"))).unwrap();
-					}
+				LineDiff::RightOnly(right) => {
+					writeln!(buffer, "{}", Paint::yellow(format_args!("> {right}"))).unwrap();
 				},
-				diff::Result::Both(text, _) => {
-					if let Some(prev) = removed.take() {
-						writeln!(buffer, "{}", Paint::cyan(format_args!("< {prev}"))).unwrap();
-					}
+				LineDiff::Different(left, right) => {
+					let diff = SingleLineDiff::new(left, right);
+					write!(buffer, "{} ", diff.left_highlights.normal.paint("<")).unwrap();
+					diff.write_left(buffer);
+					write!(buffer, "\n{} ", diff.right_highlights.normal.paint(">")).unwrap();
+					diff.write_right(buffer);
+					buffer.push('\n');
+				},
+				LineDiff::Equal(text, _) => {
 					writeln!(buffer, "  {}", Paint::default(text).dimmed()).unwrap();
 				},
 			}
 		}
 		// Remove last newline.
 		buffer.pop();
+	}
+}
+
+enum LineDiff<'a> {
+	// There is only a left line.
+	LeftOnly(&'a str),
+	// There is only a right line.
+	RightOnly(&'a str),
+	// There is a left and a right line, but they are different.
+	Different(&'a str, &'a str),
+	// There is a left and a right line, and they are equal.
+	Equal(&'a str, &'a str),
+}
+
+impl<'a> LineDiff<'a> {
+	fn from_diff(diffs: Vec<diff::Result<&'a str>>) -> Vec<Self> {
+		let mut output = Vec::with_capacity(diffs.len());
+
+		let mut seen_left = 0;
+		for item in diffs {
+			match item {
+				diff::Result::Left(l) => {
+					output.push(LineDiff::LeftOnly(l));
+					seen_left += 1;
+				},
+				diff::Result::Right(r) => {
+					if let Some(last) = output.last_mut() {
+						match last {
+							// If we see exactly one left line followed by a right line,
+							// make it a `Self::Different` entry so we perform word diff later.
+							Self::LeftOnly(old_l) if seen_left == 1 => {
+								*last = Self::Different(old_l, r);
+								seen_left = 0;
+								continue;
+							},
+							// If we see another right line, turn the `Self::Different` back into individual lines.
+							// This way, we dont do word diffs when one left line was replaced by multiple right lines.
+							Self::Different(old_l, old_r) => {
+								let old_r = *old_r;
+								*last = Self::LeftOnly(old_l);
+								output.push(Self::RightOnly(old_r));
+								output.push(Self::RightOnly(r));
+								seen_left = 0;
+								continue;
+							},
+							// In other cases, just continue to the default behaviour of adding a `RightOnly` entry.
+							Self::LeftOnly(_) => (),
+							Self::RightOnly(_) => (),
+							Self::Equal(_, _) => (),
+						}
+					}
+					output.push(LineDiff::RightOnly(r));
+					seen_left = 0;
+				},
+				diff::Result::Both(l, r) => {
+					output.push(Self::Equal(l, r));
+					seen_left = 0;
+				}
+			}
+		}
+
+		output
 	}
 }
 
@@ -192,7 +247,7 @@ impl Highlighter {
 	/// Write the data using the highlight ranges.
 	fn write_highlighted(&self, buffer: &mut String, data: &str) {
 		let not_highlighted = data.len() - self.total_highlighted;
-		if not_highlighted < self.total_highlighted + self.total_highlighted / 2 {
+		if not_highlighted < self.total_highlighted.div_ceil(2) {
 			write!(buffer, "{}", self.normal.paint(data)).unwrap();
 		} else {
 			for (highlight, range) in self.ranges.iter().cloned() {

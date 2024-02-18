@@ -1,3 +1,7 @@
+main:
+  * Suppress highlighting when diff contains consecutive changed lines.
+  * Make suppression of highlighting based on number of non-highlighted characters more conservative.
+
 v0.3.12 - 2024-02-17:
   * Automatically choose between pretty or compact `Debug` output, unless overridden.
   * Print a diff for failed binary comparisons.
