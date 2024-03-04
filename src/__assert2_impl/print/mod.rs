@@ -3,10 +3,10 @@ use yansi::Paint;
 use std::fmt::Write;
 
 mod diff;
-use diff::{MultiLineDiff, SingleLineDiff};
+use self::diff::{MultiLineDiff, SingleLineDiff};
 
 mod options;
-use options::{AssertOptions, ExpansionFormat};
+use self::options::{AssertOptions, ExpansionFormat};
 
 pub struct FailedCheck<'a, T> {
 	pub macro_name: &'a str,
