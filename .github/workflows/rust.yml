@@ -5,7 +5,7 @@ on:
 
 jobs:
   build_and_test:
-    name: Rust ${{ matrix.rust }} on ${{ matrix.os }}
+    name:  ${{ matrix.os }}, rust-${{ matrix.rust }}
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
@@ -13,13 +13,14 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Restore cached crates.io index
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry/index/
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
           key: ${{ runner.os }}-rust-${{ matrix.rust }}
+          save-always: true
       - name: Checkout code
         uses: actions/checkout@master
       - name: Install Rust ${{ matrix.rust }}
