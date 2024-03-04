@@ -3,6 +3,9 @@ on:
   push: { branches: "main" }
   pull_request: { branches: "*" }
 
+env:
+  MSRV: 1.65.0
+
 jobs:
   nightly:
     name: Build and test on nightly with all features
@@ -53,3 +56,21 @@ jobs:
         with:
           command: test
           args: --release --color=always
+
+  msrv:
+    name: Build with MSRV
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@master
+      - name: Install latest stable
+        uses: actions-rs/toolchain@v1
+        with:
+            toolchain: $MSRV
+            override: true
+      - name: Build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --all-features --color=always
+
