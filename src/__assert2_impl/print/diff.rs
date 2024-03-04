@@ -247,7 +247,7 @@ impl Highlighter {
 	/// Write the data using the highlight ranges.
 	fn write_highlighted(&self, buffer: &mut String, data: &str) {
 		let not_highlighted = data.len() - self.total_highlighted;
-		if not_highlighted < self.total_highlighted.div_ceil(2) {
+		if not_highlighted < div_ceil(self.total_highlighted, 2) {
 			write!(buffer, "{}", self.normal.paint(data)).unwrap();
 		} else {
 			for (highlight, range) in self.ranges.iter().cloned() {
@@ -260,4 +260,35 @@ impl Highlighter {
 			}
 		}
 	}
+}
+
+fn div_ceil(a: usize, b: usize) -> usize {
+	if b == 0 {
+		a / b
+	} else {
+		let d = a / b;
+		let r = a % b;
+		if r > 0 {
+			d + 1
+		} else {
+			d
+		}
+	}
+}
+
+#[test]
+fn test_div_ceil() {
+	use crate::assert;
+	assert!(div_ceil(0, 2) == 0);
+	assert!(div_ceil(1, 2) == 1);
+	assert!(div_ceil(2, 2) == 1);
+	assert!(div_ceil(3, 2) == 2);
+	assert!(div_ceil(4, 2) == 2);
+
+	assert!(div_ceil(20, 7) == 3);
+	assert!(div_ceil(21, 7) == 3);
+	assert!(div_ceil(22, 7) == 4);
+	assert!(div_ceil(27, 7) == 4);
+	assert!(div_ceil(28, 7) == 4);
+	assert!(div_ceil(29, 7) == 5);
 }

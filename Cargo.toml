@@ -3,10 +3,7 @@ name = "assert2"
 description = "assert!(...) and check!(...) macros inspired by Catch2, now with diffs!"
 version = "0.3.13"
 license = "BSD-2-Clause"
-authors = [
-	"Maarten de Vries <maarten@de-vri.es>",
-	"Mara Bos <m-ou.se@m-ou.se>",
-]
+authors = ["Maarten de Vries <maarten@de-vri.es>", "Mara Bos <m-ou.se@m-ou.se>"]
 
 rust-version = "1.65"
 edition = "2021"

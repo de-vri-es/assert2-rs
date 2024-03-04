@@ -1,3 +1,6 @@
+main:
+  * Fix support for Rust 1.65.
+
 v0.3.13 - 2024-02-18:
   * Suppress highlighting when diff contains consecutive changed lines.
   * Make suppression of highlighting based on number of non-highlighted characters more conservative.

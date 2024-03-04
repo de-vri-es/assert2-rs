@@ -49,7 +49,7 @@ impl AssertOptions {
 						yansi::Paint::disable()
 					}
 					return *style;
-				},
+				}
 			}
 		}
 	}
@@ -58,9 +58,7 @@ impl AssertOptions {
 	fn from_env() -> Self {
 		// If there is no valid `ASSERT2` environment variable, default to an empty string.
 		let format = std::env::var_os("ASSERT2");
-		let format = format.as_ref()
-			.and_then(|x| x.to_str())
-			.unwrap_or("");
+		let format = format.as_ref().and_then(|x| x.to_str()).unwrap_or("");
 
 		// Start with the defaults.
 		let mut output = Self {
@@ -117,8 +115,8 @@ impl ExpansionFormat {
 	pub fn expand_all<const N: usize>(self, values: [&dyn std::fmt::Debug; N]) -> [String; N] {
 		if !self.force_pretty() {
 			let expanded = values.map(|x| format!("{x:?}"));
-			if self.force_compact() ||  Self::is_compact_good(&expanded) {
-				return expanded
+			if self.force_compact() || Self::is_compact_good(&expanded) {
+				return expanded;
 			}
 		}
 		values.map(|x| format!("{x:#?}"))
@@ -138,7 +136,6 @@ impl ExpansionFormat {
 		}
 		true
 	}
-
 }
 
 /// Check if the clicolors spec thinks we should use colors.
@@ -159,11 +156,11 @@ fn should_color() -> bool {
 	}
 
 	#[allow(clippy::if_same_then_else)] // shut up clippy
-	if std::env::var_os("NO_COLOR").is_some_and(is_true) {
+	if std::env::var_os("NO_COLOR").map(is_true).unwrap_or_default() {
 		false
-	} else if std::env::var_os("CLICOLOR").is_some_and(is_false) {
+	} else if std::env::var_os("CLICOLOR").map(is_false).unwrap_or_default() {
 		false
-	} else if std::env::var_os("CLICOLOR_FORCE").is_some_and(is_true) {
+	} else if std::env::var_os("CLICOLOR_FORCE").map(is_true).unwrap_or_default() {
 		true
 	} else {
 		use is_terminal::IsTerminal;
