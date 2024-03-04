@@ -58,6 +58,14 @@ jobs:
     name: Build an test with MSRV (1.65.0)
     runs-on: ubuntu-latest
     steps:
+      - name: Restore cached crates.io index
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+          key: ${{ runner.os }}-cargo
       - name: Checkout code
         uses: actions/checkout@master
       - name: Install MSRV toolchain
