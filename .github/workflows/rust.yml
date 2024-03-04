@@ -55,7 +55,7 @@ jobs:
           args: --release --color=always
 
   msrv:
-    name: Build with MSRV
+    name: Build an test with MSRV (1.65.0)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
