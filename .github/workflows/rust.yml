@@ -4,59 +4,13 @@ on:
   pull_request: { branches: "*" }
 
 jobs:
-  nightly:
-    name: Build and test on nightly with all features
+  build_and_test:
+    name: Rust ${{ matrix.rust }} on ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
+        rust: [stable, nightly, 1.65.0]
     runs-on: ${{ matrix.os }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@master
-      - name: Install latest nightly
-        uses: actions-rs/toolchain@v1
-        with:
-            toolchain: nightly
-            override: true
-      - name: Build
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --release --all-features --color=always
-      - name: Test
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --release --all-features --color=always
-
-  stable:
-    name: Build and test on stable without features
-    strategy:
-      matrix:
-        os: [ ubuntu-latest, windows-latest, macos-latest ]
-    runs-on: ${{ matrix.os }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@master
-      - name: Install latest stable
-        uses: actions-rs/toolchain@v1
-        with:
-            toolchain: stable
-            override: true
-      - name: Build
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --release --color=always
-      - name: Test
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --release --color=always
-
-  msrv:
-    name: Build an test with MSRV (1.65.0)
-    runs-on: ubuntu-latest
     steps:
       - name: Restore cached crates.io index
         uses: actions/cache@v3
@@ -65,22 +19,14 @@ jobs:
             ~/.cargo/registry/index/
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
-          key: ${{ runner.os }}-cargo
+          key: ${{ runner.os }}-rust-${{ matrix.rust }}
       - name: Checkout code
         uses: actions/checkout@master
-      - name: Install MSRV toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-            toolchain: 1.65.0
-            override: true
+      - name: Install Rust ${{ matrix.rust }}
+        run: |
+          rustup install ${{ matrix.rust }} --profile minimal
+          rustup default ${{ matrix.rust }}
       - name: Build
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --all-features --color=always
+        run: cargo build --release --all-features --color=always
       - name: Test
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --release --color=always
-
+        run: cargo test --release --all-features --color=always
