@@ -34,7 +34,7 @@ impl<'a> MultiLineDiff<'a> {
 					diff.write_right(buffer);
 					buffer.push('\n');
 				},
-				LineDiff::Equal(text, _) => {
+				LineDiff::Equal(text) => {
 					writeln!(buffer, "  {}", Paint::default(text).dimmed()).unwrap();
 				},
 			}
@@ -52,7 +52,7 @@ enum LineDiff<'a> {
 	// There is a left and a right line, but they are different.
 	Different(&'a str, &'a str),
 	// There is a left and a right line, and they are equal.
-	Equal(&'a str, &'a str),
+	Equal(&'a str),
 }
 
 impl<'a> LineDiff<'a> {
@@ -89,14 +89,14 @@ impl<'a> LineDiff<'a> {
 							// In other cases, just continue to the default behaviour of adding a `RightOnly` entry.
 							Self::LeftOnly(_) => (),
 							Self::RightOnly(_) => (),
-							Self::Equal(_, _) => (),
+							Self::Equal(_) => (),
 						}
 					}
 					output.push(LineDiff::RightOnly(r));
 					seen_left = 0;
 				},
-				diff::Result::Both(l, r) => {
-					output.push(Self::Equal(l, r));
+				diff::Result::Both(l, _r) => {
+					output.push(Self::Equal(l));
 					seen_left = 0;
 				}
 			}
