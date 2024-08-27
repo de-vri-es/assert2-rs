@@ -1,3 +1,6 @@
+main:
+  * Update `syn` to `v2.0.76`.
+
 v0.3.14 - 2024-03-04:
   * Fix support for Rust 1.65.
 

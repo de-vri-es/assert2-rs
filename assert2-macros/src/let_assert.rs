@@ -65,7 +65,7 @@ impl syn::parse::Parse for Args {
 		let _comma = input.parse::<syn::token::Comma>()?;
 		let macro_name = input.parse()?;
 		let _comma = input.parse::<syn::token::Comma>()?;
-		let pattern = input.parse()?;
+		let pattern =  syn::Pat::parse_multi_with_leading_vert(input)?;
 		let _eq_token = input.parse::<syn::token::Eq>()?;
 		let expression = input.parse()?;
 
