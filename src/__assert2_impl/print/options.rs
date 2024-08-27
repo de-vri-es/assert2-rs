@@ -44,9 +44,9 @@ impl AssertOptions {
 				Ok(mut style) => {
 					let style = style.get_or_insert_with(AssertOptions::from_env);
 					if style.color {
-						yansi::Paint::enable()
+						yansi::whenever(yansi::Condition::ALWAYS)
 					} else {
-						yansi::Paint::disable()
+						yansi::whenever(yansi::Condition::NEVER)
 					}
 					return *style;
 				}
