@@ -21,21 +21,21 @@ impl<'a> MultiLineDiff<'a> {
 		for diff in &self.line_diffs {
 			match *diff {
 				LineDiff::LeftOnly(left) => {
-					writeln!(buffer, "{}", Paint::cyan(format_args!("< {left}"))).unwrap();
+					writeln!(buffer, "{}", Paint::cyan(&format_args!("< {left}"))).unwrap();
 				},
 				LineDiff::RightOnly(right) => {
-					writeln!(buffer, "{}", Paint::yellow(format_args!("> {right}"))).unwrap();
+					writeln!(buffer, "{}", Paint::yellow(&format_args!("> {right}"))).unwrap();
 				},
 				LineDiff::Different(left, right) => {
 					let diff = SingleLineDiff::new(left, right);
-					write!(buffer, "{} ", diff.left_highlights.normal.paint("<")).unwrap();
+					write!(buffer, "{} ", "<".paint(diff.left_highlights.normal)).unwrap();
 					diff.write_left(buffer);
-					write!(buffer, "\n{} ", diff.right_highlights.normal.paint(">")).unwrap();
+					write!(buffer, "\n{} ", ">".paint(diff.right_highlights.normal)).unwrap();
 					diff.write_right(buffer);
 					buffer.push('\n');
 				},
 				LineDiff::Equal(text) => {
-					writeln!(buffer, "  {}", Paint::default(text).dimmed()).unwrap();
+					writeln!(buffer, "  {}", text.primary().on_primary().dim()).unwrap();
 				},
 			}
 		}
@@ -217,8 +217,8 @@ struct Highlighter {
 impl Highlighter {
 	/// Create a new highlighter with the given color.
 	fn new(color: yansi::Color) -> Self {
-		let normal = yansi::Style::new(color);
-		let highlight = yansi::Style::new(yansi::Color::Black).bg(color).bold();
+		let normal = yansi::Style::new().fg(color);
+		let highlight = yansi::Style::new().fg(yansi::Color::Black).bg(color).bold();
 		Self {
 			ranges: Vec::new(),
 			total_highlighted: 0,
@@ -248,13 +248,13 @@ impl Highlighter {
 	fn write_highlighted(&self, buffer: &mut String, data: &str) {
 		let not_highlighted = data.len() - self.total_highlighted;
 		if not_highlighted < div_ceil(self.total_highlighted, 2) {
-			write!(buffer, "{}", self.normal.paint(data)).unwrap();
+			write!(buffer, "{}", data.paint(self.normal)).unwrap();
 		} else {
 			for (highlight, range) in self.ranges.iter().cloned() {
 				let piece = if highlight {
-					self.highlight.paint(&data[range])
+					data[range].paint(self.highlight)
 				} else {
-					self.normal.paint(&data[range])
+					data[range].paint(self.normal)
 				};
 				write!(buffer, "{}", piece).unwrap();
 			}

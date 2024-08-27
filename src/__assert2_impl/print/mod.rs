@@ -47,8 +47,8 @@ impl<'a, T: CheckExpression> FailedCheck<'a, T> {
 	pub fn print(&self) {
 		let mut print_message = String::new();
 		writeln!(&mut print_message, "{msg} at {file}:{line}:{column}:",
-			msg    = Paint::red("Assertion failed").bold(),
-			file   = Paint::default(self.file).bold(),
+			msg    = "Assertion failed".red().bold(),
+			file   = self.file.bold(),
 			line   = self.line,
 			column = self.column,
 		).unwrap();
@@ -73,7 +73,7 @@ impl<'a, T: CheckExpression> FailedCheck<'a, T> {
 		writeln!(&mut print_message, ).unwrap();
 		if let Some(msg) = self.custom_msg {
 			writeln!(&mut print_message, "with message:").unwrap();
-			writeln!(&mut print_message, "  {}", Paint::default(msg).bold()).unwrap();
+			writeln!(&mut print_message, "  {}", msg.bold()).unwrap();
 		}
 		writeln!(&mut print_message).unwrap();
 
@@ -106,9 +106,9 @@ impl<Left: Debug, Right: Debug> CheckExpression for BinaryOp<'_, Left, Right> {
 				diff.write_right(print_message);
 				if left == right {
 					if self.operator == "==" {
-						write!(print_message, "\n{}", Paint::red("Note: Left and right compared as unequal, but the Debug output of left and right is identical!")).unwrap();
+						write!(print_message, "\n{}", "Note: Left and right compared as unequal, but the Debug output of left and right is identical!".red()).unwrap();
 					} else {
-						write!(print_message, "\n{}", Paint::default("Note: Debug output of left and right is identical.").bold()).unwrap();
+						write!(print_message, "\n{}", "Note: Debug output of left and right is identical.".bold()).unwrap();
 					}
 				}
 				return
@@ -132,7 +132,7 @@ impl CheckExpression for BooleanExpr<'_> {
 
 	fn write_expansion(&self, print_message: &mut String) {
 		writeln!(print_message, "with expansion:").unwrap();
-		write!(print_message, "  {:?}", Paint::cyan(false)).unwrap();
+		write!(print_message, "  {:?}", false.cyan()).unwrap();
 	}
 }
 
@@ -152,7 +152,7 @@ impl<Value: Debug> CheckExpression for MatchExpr<'_, Value> {
 	fn write_expansion(&self, print_message: &mut String) {
 		writeln!(print_message, "with expansion:").unwrap();
 		let [value] = AssertOptions::get().expand.expand_all([&self.value]);
-		let message = Paint::yellow(value).to_string();
+		let message = value.yellow().to_string();
 		for line in message.lines() {
 			writeln!(print_message, "  {line}").unwrap();
 		}
