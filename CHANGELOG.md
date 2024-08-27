@@ -1,4 +1,4 @@
-main:
+v0.3.15 - 2024-08-27:
   * Update `syn` to `v2.0.76`.
   * Update `yansi` to `v1.0.1`.
 
