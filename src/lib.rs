@@ -1,4 +1,3 @@
-#![cfg_attr(feature = "doc-cfg", feature(doc_cfg))]
 #![allow(clippy::needless_lifetimes)]
 
 //! All-purpose [`assert!(...)`](macro.assert.html) and [`check!(...)`](macro.check.html) macros, inspired by [Catch2](https://github.com/catchorg/Catch2).
