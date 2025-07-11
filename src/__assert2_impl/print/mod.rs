@@ -77,7 +77,7 @@ impl<'a, T: CheckExpression> FailedCheck<'a, T> {
 		}
 		writeln!(&mut print_message).unwrap();
 
-		eprint!("{}", print_message);
+		eprint!("{print_message}");
 	}
 }
 

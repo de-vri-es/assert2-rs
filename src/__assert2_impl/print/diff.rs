@@ -256,7 +256,7 @@ impl Highlighter {
 				} else {
 					data[range].paint(self.normal)
 				};
-				write!(buffer, "{}", piece).unwrap();
+				write!(buffer, "{piece}").unwrap();
 			}
 		}
 	}

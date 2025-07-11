@@ -163,7 +163,6 @@ fn should_color() -> bool {
 	} else if std::env::var_os("CLICOLOR_FORCE").map(is_true).unwrap_or_default() {
 		true
 	} else {
-		use is_terminal::IsTerminal;
-		std::io::stderr().is_terminal()
+		std::io::IsTerminal::is_terminal(&std::io::stderr())
 	}
 }
