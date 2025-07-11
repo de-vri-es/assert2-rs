@@ -1,6 +1,8 @@
 use std::fmt::Write;
 use yansi::Paint;
 
+use super::{style, LEFT_STYLE, RIGHT_STYLE};
+
 /// A line diff between two inputs.
 pub struct MultiLineDiff<'a> {
 	/// The actual diff results from the [`diff`] crate.
@@ -21,10 +23,10 @@ impl<'a> MultiLineDiff<'a> {
 		for diff in &self.line_diffs {
 			match *diff {
 				LineDiff::LeftOnly(left) => {
-					writeln!(buffer, "{}", Paint::cyan(&format_args!("< {left}"))).unwrap();
+					writeln!(buffer, "{}", style(&format_args!("< {left}"), LEFT_STYLE)).unwrap();
 				},
 				LineDiff::RightOnly(right) => {
-					writeln!(buffer, "{}", Paint::yellow(&format_args!("> {right}"))).unwrap();
+					writeln!(buffer, "{}", style(&format_args!("> {right}"), RIGHT_STYLE)).unwrap();
 				},
 				LineDiff::Different(left, right) => {
 					let diff = SingleLineDiff::new(left, right);
