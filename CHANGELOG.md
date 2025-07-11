@@ -1,4 +1,4 @@
-main:
+v0.3.16 - 2025-07-11:
   * Update minimum rust version to 1.70.
   * Remove `is-terminal` dependency.
 
