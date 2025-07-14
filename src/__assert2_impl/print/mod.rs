@@ -7,13 +7,16 @@ use self::diff::{MultiLineDiff, SingleLineDiff};
 mod options;
 use self::options::{AssertOptions, ExpansionFormat};
 
-const ERROR_STYLE: yansi::Style = yansi::Style::new().red().bold();
+mod writer;
+
+const DEFAULT_STYLE: yansi::Style = yansi::Style::new();
+const ERROR_STYLE: yansi::Style = yansi::Style::new().bright_red().bold();
 const MACRO_STYLE: yansi::Style = yansi::Style::new().magenta();
 const OP_STYLE: yansi::Style = yansi::Style::new().blue().bold();
 const LEFT_STYLE: yansi::Style = yansi::Style::new().cyan();
 const RIGHT_STYLE: yansi::Style = yansi::Style::new().yellow();
-const DIMMED_STYLE: yansi::Style = yansi::Style::new().bright_black();
 const NOTE_STYLE: yansi::Style = yansi::Style::new().bold();
+const DIMMED_STYLE: yansi::Style = yansi::Style::new().dim();
 
 pub struct FailedCheck<'a> {
 	pub macro_name: &'a str,
@@ -48,12 +51,12 @@ pub enum Predicate<'a> {
 
 pub enum Expansion<'a> {
 	Binary {
-		left: &'a dyn Debug,
+		left: &'a (dyn Debug + 'a),
 		operator: &'a str,
-		right: &'a dyn Debug,
+		right: &'a (dyn Debug + 'a),
 	},
 	Let {
-		expression: &'a dyn Debug,
+		expression: &'a (dyn Debug + 'a),
 	},
 	Bool,
 }
@@ -80,115 +83,125 @@ pub struct MatchExpr<'a, Value> {
 impl<'a> FailedCheck<'a> {
 	#[rustfmt::skip]
 	pub fn print(&self) {
-		let mut print_message = String::new();
-		writeln!(&mut print_message, "{msg} at {file}:{line}:{column}:",
-			msg    = style("Assertion failed", ERROR_STYLE),
-			file   = style(self.file, NOTE_STYLE),
-			line   = self.line,
-			column = self.column,
-		).unwrap();
-		write!(&mut print_message, "  {name}{open} ",
-			name = style(self.macro_name, MACRO_STYLE),
-			open = style("!(", MACRO_STYLE),
-		).unwrap();
-		for (i, predicate) in self.predicates.iter().enumerate() {
-			if i > 0 {
-				write!(print_message, " && ").unwrap();
-			}
-			predicate.write(&mut print_message, i == self.failed);
-		}
-		writeln!(&mut print_message, " {}", style(")", MACRO_STYLE)).unwrap();
+		let mut buffer = String::new();
+		let options = options::AssertOptions::get();
+		let (term_width, _term_height) = term_size::dimensions_stderr().unwrap_or((80, 80));
+		let mut writer = writer::WrappingWriter::new(&mut buffer, term_width, options.color);
+		self.print_assertion(&mut writer);
 		if !self.fragments.is_empty() {
-			writeln!(&mut print_message, "with:").unwrap();
+			writer.write("with:\n");
 			for (name, expansion) in self.fragments {
-				writeln!(
-					&mut print_message,
-					"  {} {} {}",
-					style(name, MACRO_STYLE),
-					style("=", OP_STYLE),
-					expansion
-				).unwrap();
+				writer.write("  ");
+				writer.write_styled(name, MACRO_STYLE);
+				writer.write(" ");
+				writer.write_styled("=", OP_STYLE);
+				writer.write(" ");
+				writer.write_styled(expansion, MACRO_STYLE);
+				writer.flush_line();
 			}
 		}
-		self.expansion.write(&mut print_message);
-		writeln!(&mut print_message, ).unwrap();
+		self.expansion.write(&mut writer);
+		writer.flush_line();
 		if let Some(msg) = self.custom_msg {
-			writeln!(&mut print_message, "with message:").unwrap();
-			writeln!(&mut print_message, "  {}", style(msg, NOTE_STYLE)).unwrap();
+			writer.write("with message:\n  ");
+			writer.write_styled(&format!("{msg}"), NOTE_STYLE);
+			writer.flush_line();
 		}
-		writeln!(&mut print_message).unwrap();
+		writer.flush_line();
+		drop(writer);
 
-		eprint!("{print_message}");
+		eprint!("{buffer}");
+	}
+
+	fn print_assertion(&self, writer: &mut writer::WrappingWriter) {
+		writer.write_styled("Assertion failed", ERROR_STYLE);
+		writer.write(" at ");
+		writer.write_styled(self.file, NOTE_STYLE);
+		writer.write(&format!(":{}:{}", self.line, self.column));
+		writer.flush_line();
+		writer.write("  ");
+		writer.write_styled(self.macro_name, MACRO_STYLE);
+		writer.write_styled("!( ", MACRO_STYLE);
+
+		// Print all the predicates up to and including the failed one.
+		for (i, predicate) in self.predicates[..=self.failed].iter().enumerate() {
+			if i > 0 {
+				writer.write_styled(" && ", DIMMED_STYLE);
+			}
+			predicate.write(writer, i == self.failed);
+		}
+
+		// Print " && ... " if there are more predicates (which have not been checked).
+		if self.failed + 1 < self.predicates.len() {
+			writer.write_styled(" && ...", DIMMED_STYLE);
+		}
+
+		writer.write_styled(" )", MACRO_STYLE);
+		writer.flush_line();
 	}
 }
 
 impl Predicate<'_> {
-	fn write(&self, print_message: &mut String, failed: bool) {
-		let op_style = match failed {
-			true => OP_STYLE,
-			false => yansi::Style::new(),
-		};
-		let left_style = match failed {
-			true => LEFT_STYLE,
-			false => yansi::Style::new(),
-		};
-		let right_style = match failed {
-			true => RIGHT_STYLE,
-			false => yansi::Style::new(),
-		};
+	fn write(&self, writer: &mut writer::WrappingWriter, failed: bool) {
+		fn make_snippet(data: &str, style: yansi::Style, failed: bool) -> writer::Snippet<'_> {
+			let snippet = writer::Snippet::new(data);
+			if failed {
+				snippet.style(style).undercurl_error()
+			} else {
+				snippet.style(DIMMED_STYLE)
+			}
+		}
 
 		match self {
 			Self::Binary { left, operator, right } => {
-				write!(print_message, "{left} {op} {right}",
-					left  = style(left, left_style),
-					op    = style(operator, op_style),
-					right = style(right, right_style),
-				).unwrap();
+				writer.write_snippet(&make_snippet(left, LEFT_STYLE, failed));
+				writer.write_snippet(&make_snippet(" ", DEFAULT_STYLE, failed));
+				writer.write_snippet(&make_snippet(operator, OP_STYLE, failed));
+				writer.write_snippet(&make_snippet(" ", DEFAULT_STYLE, failed));
+				writer.write_snippet(&make_snippet(right, RIGHT_STYLE, failed));
 			},
 			Self::Let { pattern, expression } => {
-				write!(print_message, "{let} {pat} {eq} {expr}",
-					let  = style("let", op_style),
-					pat  = style(pattern, left_style),
-					eq   = style("=", op_style),
-					expr = style(expression, right_style),
-				).unwrap();
+				writer.write_snippet(&make_snippet("let ", OP_STYLE, failed));
+				writer.write_snippet(&make_snippet(pattern, LEFT_STYLE, failed));
+				writer.write_snippet(&make_snippet(" = ", OP_STYLE, failed));
+				writer.write_snippet(&make_snippet(expression, RIGHT_STYLE, failed));
 			},
 			Self::Bool { expression } => {
-				write!(print_message, "{expr}",
-					expr = style(expression, right_style),
-				).unwrap();
-			},
+				writer.write_snippet(&make_snippet(expression, RIGHT_STYLE, failed));
+			}
 		}
 	}
 }
 
 impl Expansion<'_> {
-	fn write(&self, print_message: &mut String) {
+	fn write(&self, writer: &mut writer::WrappingWriter) {
 		match self {
-			Self::Binary { left, operator, right } => Self::write_binary(print_message, left, operator, right),
-			Self::Let { expression } => Self::write_let(print_message, expression),
-			Self::Bool => Self::write_bool(print_message),
+			Self::Binary { left, operator, right } => Self::write_binary(writer, left, operator, right),
+			Self::Let { expression } => Self::write_let(writer, expression),
+			Self::Bool => Self::write_bool(writer),
 		}
 	}
 
-	fn write_binary(print_message: &mut String, left: &dyn Debug, operator: &str, right: &dyn Debug) {
+	fn write_binary(writer: &mut writer::WrappingWriter, left: &dyn Debug, operator: &str, right: &dyn Debug) {
 		let style = AssertOptions::get();
 
 		if !style.expand.force_pretty() {
 			let left = format!("{left:?}");
 			let right = format!("{right:?}");
 			if style.expand.force_compact() || ExpansionFormat::is_compact_good(&[&left, &right]) {
-				writeln!(print_message, "with expansion:").unwrap();
+				writer.write("with expansion:\n");
+				let buffer = writer.buffer_mut();
 				let diff = SingleLineDiff::new(&left, &right);
-				print_message.push_str("  ");
-				diff.write_left(print_message);
-				write!(print_message, " {} ", self::style(operator, OP_STYLE)).unwrap();
-				diff.write_right(print_message);
+				buffer.push_str("  ");
+				diff.write_left(buffer);
+				write!(buffer, " {} ", self::style(operator, OP_STYLE)).unwrap();
+				diff.write_right(buffer);
 				if left == right {
+					buffer.push('\n');
 					if operator == "==" {
-						write!(print_message, "\n{}", self::style("Note: Left and right compared as unequal, but the Debug output of left and right is identical!", ERROR_STYLE)).unwrap();
+						writer.write_styled("Note: Left and right compared as unequal, but the Debug output of left and right is identical!", ERROR_STYLE);
 					} else {
-						write!(print_message, "\n{}", self::style("Note: Debug output of left and right is identical.", NOTE_STYLE)).unwrap();
+						writer.write_styled("Note: Debug output of left and right is identical.", NOTE_STYLE);
 					}
 				}
 				return
@@ -198,25 +211,27 @@ impl Expansion<'_> {
 		// Compact expansion was disabled or not compact enough, so go full-on pretty debug format.
 		let left = format!("{left:#?}");
 		let right = format!("{right:#?}");
-		writeln!(print_message, "with diff:").unwrap();
+		writer.write("with diff:\n");
 		MultiLineDiff::new(&left, &right)
-			.write_interleaved(print_message);
+			.write_interleaved(writer.buffer_mut());
 	}
 
-	fn write_bool(print_message: &mut String) {
-		writeln!(print_message, "with expansion:").unwrap();
-		write!(print_message, "  {:?}", style(false, RIGHT_STYLE)).unwrap();
+	fn write_bool(writer: &mut writer::WrappingWriter) {
+		writer.write("with expansion:\n");
+		writer.write("  ");
+		writer.write_styled("false", RIGHT_STYLE);
 	}
 
-	fn write_let(print_message: &mut String, expression: &dyn Debug) {
-		writeln!(print_message, "with expansion:").unwrap();
+	fn write_let(writer: &mut writer::WrappingWriter, expression: &dyn Debug) {
+		writer.write("with expansion:\n");
 		let [value] = AssertOptions::get().expand.expand_all([expression]);
-		let message = style(value, RIGHT_STYLE).to_string();
-		for line in message.lines() {
-			writeln!(print_message, "  {line}").unwrap();
+		for line in value.lines() {
+			writer.write("  ");
+			writer.write_styled(line, RIGHT_STYLE);
+			writer.flush_line();
 		}
 		// Remove last newline.
-		print_message.pop();
+		writer.buffer_mut().pop();
 	}
 }
 

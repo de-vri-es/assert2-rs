@@ -10,7 +10,7 @@ fn main() {
 	check!(true && false);
 	check!(let Ok(_) = File::open("/non/existing/file"));
 
-	let_assert!(Err(e) = File::open("/non/existing/file"));
+	let_assert!(let Err(e) = File::open("/non/existing/file"));
 	check!(e.kind() == ErrorKind::PermissionDenied);
 
 	#[derive(Debug, Eq, PartialEq)]

@@ -18,6 +18,8 @@ categories = ["development-tools::debugging", "development-tools::testing"]
 assert2-macros = { version = "=0.3.16", path = "assert2-macros" }
 yansi = "1.0.1"
 diff = "0.1.13"
+unicode-width = "0.2.1"
+term_size = "0.3.2"
 
 [workspace]
 resolver = "2"

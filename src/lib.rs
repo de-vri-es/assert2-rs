@@ -87,7 +87,7 @@
 //! # use assert2::let_assert;
 //! # use std::fs::File;
 //! # use std::io::ErrorKind;
-//! let_assert!(Err(e) = File::open("/non/existing/file"));
+//! let_assert!(let Err(e) = File::open("/non/existing/file"));
 //! check!(e.kind() == ErrorKind::PermissionDenied);
 //! ```
 //!
@@ -152,10 +152,10 @@
 //! #     format!("invalid name: {}", self.name)
 //! #   }
 //! # }
-//! let_assert!(Ok(foo) = Foo::try_new("bar"));
+//! let_assert!(let Ok(foo) = Foo::try_new("bar"));
 //! check!(foo.name() == "bar");
 //!
-//! let_assert!(Err(Error::InvalidName(e)) = Foo::try_new("bogus name"));
+//! let_assert!(let Err(Error::InvalidName(e)) = Foo::try_new("bogus name"));
 //! check!(e.name() == "bogus name");
 //! check!(e.to_string() == "invalid name: bogus name");
 //! # }
@@ -308,10 +308,10 @@ macro_rules! debug_assert {
 /// #     format!("invalid name: {}", self.name)
 /// #   }
 /// # }
-/// let_assert!(Ok(foo) = Foo::try_new("bar"));
+/// let_assert!(let Ok(foo) = Foo::try_new("bar"));
 /// check!(foo.name() == "bar");
 ///
-/// let_assert!(Err(Error::InvalidName(e)) = Foo::try_new("bogus name"));
+/// let_assert!(let Err(Error::InvalidName(e)) = Foo::try_new("bogus name"));
 /// check!(e.name() == "bogus name");
 /// check!(e.to_string() == "invalid name: bogus name");
 /// # }
