@@ -239,9 +239,9 @@ macro_rules! assert {
 macro_rules! check {
 	($($tokens:tt)*) => {
 		let _guard = match $crate::__assert2_impl::check_impl!($crate, "check", $($tokens)*) {
-			Ok(_) => None,
-			Err(_) => {
-				Some($crate::__assert2_impl::FailGuard(|| panic!("check failed")))
+			::core::result::Result::Ok(_) => ::core::option::Option::None,
+			::core::result::Result::Err(_) => {
+				::core::option::Option::Some($crate::__assert2_impl::FailGuard(|| ::core::panic!("check failed")))
 			},
 		};
 	}

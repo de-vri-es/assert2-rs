@@ -14,8 +14,8 @@ pub struct Args {
 
 pub fn assert(args: Args) -> TokenStream {
 	let custom_msg = match args.format_args {
-		Some(x) => quote!(Some(format_args!(#x))),
-		None => quote!(None),
+		Some(x) => quote!(::core::option::Option::Some(::core::format_args!(#x))),
+		None => quote!(::core::option::Option::None),
 	};
 
 	let predicates = super::split_predicates(args.expression);
@@ -78,7 +78,7 @@ fn assert_let_expr(
 				},
 				fragments: #fragments,
 			}.print();
-			panic!("assertion failed");
+			::core::panic!("assertion failed");
 		};
 	}
 }
@@ -88,11 +88,11 @@ fn assert_binary_expr(
 	index: usize,
 	expr: syn::ExprBinary,
 ) -> TokenStream {
-	let check = super::check_binary_op(context, index, expr, quote! { Ok::<(), ()>(()) });
+	let check = super::check_binary_op(context, index, expr, quote! { ::core::result::Result::Ok::<(), ()>(()) });
 	quote! {
 		match #check {
-			Ok(()) => (),
-			Err(()) => panic!("assertion failed"),
+			::core::result::Result::Ok(()) => (),
+			::core::result::Result::Err(()) => ::core::panic!("assertion failed"),
 		}
 	}
 }
@@ -102,11 +102,11 @@ fn assert_bool_expr(
 	index: usize,
 	expr: syn::Expr,
 ) -> TokenStream {
-	let check = super::check_bool_expr(context, index, expr, quote! { Ok::<(), ()>(()) });
+	let check = super::check_bool_expr(context, index, expr, quote! { ::core::result::Result::Ok::<(), ()>(()) });
 	quote! {
 		match #check {
-			Ok(()) => (),
-			Err(()) => panic!("assertion failed"),
+			::core::result::Result::Ok(()) => (),
+			::core::result::Result::Err(()) => ::core::panic!("assertion failed"),
 		}
 	}
 }

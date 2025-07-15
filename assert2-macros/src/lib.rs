@@ -46,8 +46,8 @@ fn check(args: Args) -> TokenStream {
 	let print_predicates = printable_predicates(&args.crate_name, &predicates, &mut fragments);
 
 	let custom_msg = match args.format_args {
-		Some(x) => quote!(Some(format_args!(#x))),
-		None => quote!(None),
+		Some(x) => quote!(::core::option::Option::Some(::core::format_args!(#x))),
+		None => quote!(::core::option::Option::None),
 	};
 
 	let context = Context {
@@ -58,7 +58,7 @@ fn check(args: Args) -> TokenStream {
 		custom_msg,
 	};
 
-	let mut assertions = quote! { Ok::<(), ()>(()) };
+	let mut assertions = quote! { ::core::result::Result::Ok::<(), ()>(()) };
 	for (i, expr) in predicates.into_iter().enumerate().rev() {
 		assertions = match expr {
 			syn::Expr::Binary(expr) => check_binary_op(&context, i, expr, assertions),
@@ -118,7 +118,7 @@ fn check_binary_op(
 					fragments: #fragments,
 					custom_msg: #custom_msg,
 				}.print();
-				Err(())
+				::core::result::Result::Err(())
 			},
 			_ => {
 				#next_predicate
@@ -158,7 +158,7 @@ fn check_bool_expr(
 					fragments: #fragments,
 					custom_msg: #custom_msg,
 				}.print();
-				Err(())
+				::core::result::Result::Err(())
 			},
 		}
 	}
@@ -205,7 +205,7 @@ fn check_let_expr(
 					fragments: #fragments,
 					custom_msg: #custom_msg,
 				}.print();
-				Err(())
+				::core::result::Result::Err(())
 			}
 		}
 	}
