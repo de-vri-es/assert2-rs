@@ -128,7 +128,7 @@ impl<'a> FailedCheck<'a> {
 			if i > 0 {
 				writer.write_styled(" && ", DIMMED_STYLE);
 			}
-			predicate.write(writer, i == self.failed);
+			predicate.write(writer, i == self.failed, self.predicates.len() > 1);
 		}
 
 		// Print " && ... " if there are more predicates (which have not been checked).
@@ -142,32 +142,36 @@ impl<'a> FailedCheck<'a> {
 }
 
 impl Predicate<'_> {
-	fn write(&self, writer: &mut writer::WrappingWriter, failed: bool) {
-		fn make_snippet(data: &str, style: yansi::Style, failed: bool) -> writer::Snippet<'_> {
-			let snippet = writer::Snippet::new(data);
+	fn write(&self, writer: &mut writer::WrappingWriter, failed: bool, undercurl: bool) {
+		fn make_snippet(data: &str, style: yansi::Style, failed: bool, undercurl: bool) -> writer::Snippet<'_> {
+			let mut snippet = writer::Snippet::new(data);
 			if failed {
-				snippet.style(style).undercurl_error()
+				snippet = snippet.style(style);
+				if undercurl {
+					snippet = snippet.undercurl_error();
+				}
 			} else {
-				snippet.style(DIMMED_STYLE)
+				snippet = snippet.style(DIMMED_STYLE);
 			}
+			snippet
 		}
 
 		match self {
 			Self::Binary { left, operator, right } => {
-				writer.write_snippet(&make_snippet(left, LEFT_STYLE, failed));
-				writer.write_snippet(&make_snippet(" ", DEFAULT_STYLE, failed));
-				writer.write_snippet(&make_snippet(operator, OP_STYLE, failed));
-				writer.write_snippet(&make_snippet(" ", DEFAULT_STYLE, failed));
-				writer.write_snippet(&make_snippet(right, RIGHT_STYLE, failed));
+				writer.write_snippet(&make_snippet(left, LEFT_STYLE, failed, undercurl));
+				writer.write_snippet(&make_snippet(" ", DEFAULT_STYLE, failed, undercurl));
+				writer.write_snippet(&make_snippet(operator, OP_STYLE, failed, undercurl));
+				writer.write_snippet(&make_snippet(" ", DEFAULT_STYLE, failed, undercurl));
+				writer.write_snippet(&make_snippet(right, RIGHT_STYLE, failed, undercurl));
 			},
 			Self::Let { pattern, expression } => {
-				writer.write_snippet(&make_snippet("let ", OP_STYLE, failed));
-				writer.write_snippet(&make_snippet(pattern, LEFT_STYLE, failed));
-				writer.write_snippet(&make_snippet(" = ", OP_STYLE, failed));
-				writer.write_snippet(&make_snippet(expression, RIGHT_STYLE, failed));
+				writer.write_snippet(&make_snippet("let ", OP_STYLE, failed, undercurl));
+				writer.write_snippet(&make_snippet(pattern, LEFT_STYLE, failed, undercurl));
+				writer.write_snippet(&make_snippet(" = ", OP_STYLE, failed, undercurl));
+				writer.write_snippet(&make_snippet(expression, RIGHT_STYLE, failed, undercurl));
 			},
 			Self::Bool { expression } => {
-				writer.write_snippet(&make_snippet(expression, RIGHT_STYLE, failed));
+				writer.write_snippet(&make_snippet(expression, RIGHT_STYLE, failed, undercurl));
 			}
 		}
 	}
