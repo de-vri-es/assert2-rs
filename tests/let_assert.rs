@@ -6,28 +6,28 @@ use assert2::let_assert;
 #[test]
 fn basic_match() {
 	// Test a basic match.
-	let_assert!(let Some(x) = Some(10));
+	let_assert!(Some(x) = Some(10));
 	assert!(x == 10);
 }
 
 #[test]
 fn basic_match_ref() {
 	// Test a basic match on a reference.
-	let_assert!(let Some(x) = &Some(10));
+	let_assert!(Some(x) = &Some(10));
 	assert!(x == &10);
 }
 
 #[test]
 fn basic_match_no_placeholders() {
-	let_assert!(let None = Some(10).filter(|_| false));
-	let_assert!(let None = &Some(10).filter(|_| false));
+	let_assert!(None = Some(10).filter(|_| false));
+	let_assert!(None = &Some(10).filter(|_| false));
 }
 
 #[test]
 fn anonymous_placeholders() {
 	// Make sure _ placeholders are ignored.
-	let_assert!(let (_, _, _) = (10, 11, 12));
-	let_assert!(let (x, _, y) = (13, 14, 15));
+	let_assert!((_, _, _) = (10, 11, 12));
+	let_assert!((x, _, y) = (13, 14, 15));
 	assert!(x == 13);
 	assert!(y == 15);
 }
@@ -35,7 +35,7 @@ fn anonymous_placeholders() {
 #[test]
 fn underscore_prefixed_placeholders() {
 	// But _name placeholders are not ignored.
-	let_assert!(let (_x, _, _y) = (13, 14, 15));
+	let_assert!((_x, _, _y) = (13, 14, 15));
 	assert!(_x == 13);
 	assert!(_y == 15);
 }
@@ -43,27 +43,27 @@ fn underscore_prefixed_placeholders() {
 #[test]
 fn mut_binding() {
 	// We should be able to capture things mutably.
-	let_assert!(let mut foo = String::from("foo"));
+	let_assert!(mut foo = String::from("foo"));
 	foo += " bar";
 }
 
 #[test]
 fn ref_binding() {
 	// We should be able to capture static things by reference.
-	let_assert!(let ref foo = 10);
+	let_assert!(ref foo = 10);
 	std::assert!(foo == &10);
 }
 
 #[test]
 fn subpattern_binding() {
 	// We should be able to capture things that use subpatterns.
-	let_assert!(let foo @ 10 = 10);
+	let_assert!(foo @ 10 = 10);
 	std::assert!(foo == 10);
 }
 
 #[test]
 fn consume() {
-	let_assert!(let Some(x) = Some(String::from("foo")));
+	let_assert!(Some(x) = Some(String::from("foo")));
 	assert!(x == "foo");
 }
 
@@ -77,9 +77,9 @@ macro_rules! test_panic {
 	}
 }
 
-test_panic!(panic_let_assert_err_instead_of_ok, let_assert!(let Ok(_x) = Result::<i32, i32>::Err(10)));
+test_panic!(panic_let_assert_err_instead_of_ok, let_assert!(Ok(_x) = Result::<i32, i32>::Err(10)));
 test_panic!(
 	panic_let_assert_err_instead_of_ok_with_message,
-	let_assert!(let Ok(_x) = Result::<i32, i32>::Err(10), "{}", "rust broke")
+	let_assert!(Ok(_x) = Result::<i32, i32>::Err(10), "{}", "rust broke")
 );
-test_panic!(panic_let_assert_no_capture, let_assert!(let None = Some(10)));
+test_panic!(panic_let_assert_no_capture, let_assert!(None = Some(10)));

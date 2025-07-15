@@ -1,5 +1,4 @@
 use std::fmt::Debug;
-use std::fmt::Write;
 
 mod diff;
 use self::diff::{MultiLineDiff, SingleLineDiff};
@@ -194,14 +193,15 @@ impl Expansion<'_> {
 			let right = format!("{right:?}");
 			if style.expand.force_compact() || ExpansionFormat::is_compact_good(&[&left, &right]) {
 				writer.write("with expansion:\n");
-				let buffer = writer.buffer_mut();
 				let diff = SingleLineDiff::new(&left, &right);
-				buffer.push_str("  ");
-				diff.write_left(buffer);
-				write!(buffer, " {} ", self::style(operator, OP_STYLE)).unwrap();
-				diff.write_right(buffer);
+				writer.write("  ");
+				diff.write_left(writer);
+				writer.write(" ");
+				writer.write_styled(operator, OP_STYLE);
+				writer.write(" ");
+				diff.write_right(writer);
 				if left == right {
-					buffer.push('\n');
+					writer.flush_line();
 					if operator == "==" {
 						writer.write_styled("Note: Left and right compared as unequal, but the Debug output of left and right is identical!", ERROR_STYLE);
 					} else {
@@ -217,7 +217,7 @@ impl Expansion<'_> {
 		let right = format!("{right:#?}");
 		writer.write("with diff:\n");
 		MultiLineDiff::new(&left, &right)
-			.write_interleaved(writer.buffer_mut());
+			.write_interleaved(writer);
 	}
 
 	fn write_bool(writer: &mut writer::WrappingWriter) {
@@ -237,9 +237,4 @@ impl Expansion<'_> {
 		// Remove last newline.
 		writer.buffer_mut().pop();
 	}
-}
-
-
-fn style<T: std::fmt::Display>(value: T, style: yansi::Style) -> yansi::Painted<T> {
-	yansi::Painted { value, style }
 }

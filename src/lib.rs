@@ -87,7 +87,7 @@
 //! # use assert2::let_assert;
 //! # use std::fs::File;
 //! # use std::io::ErrorKind;
-//! let_assert!(let Err(e) = File::open("/non/existing/file"));
+//! let_assert!(Err(e) = File::open("/non/existing/file"));
 //! check!(e.kind() == ErrorKind::PermissionDenied);
 //! ```
 //!
@@ -152,10 +152,10 @@
 //! #     format!("invalid name: {}", self.name)
 //! #   }
 //! # }
-//! let_assert!(let Ok(foo) = Foo::try_new("bar"));
+//! let_assert!(Ok(foo) = Foo::try_new("bar"));
 //! check!(foo.name() == "bar");
 //!
-//! let_assert!(let Err(Error::InvalidName(e)) = Foo::try_new("bogus name"));
+//! let_assert!(Err(Error::InvalidName(e)) = Foo::try_new("bogus name"));
 //! check!(e.name() == "bogus name");
 //! check!(e.to_string() == "invalid name: bogus name");
 //! # }
@@ -208,9 +208,7 @@ pub mod __assert2_impl;
 #[macro_export]
 macro_rules! assert {
 	($($tokens:tt)*) => {
-		if let Err(()) = $crate::__assert2_impl::check_impl!($crate, "assert", $($tokens)*) {
-			panic!("assertion failed");
-		}
+		$crate::__assert2_impl::assert_impl!($crate, "assert", $($tokens)*)
 	}
 }
 
@@ -260,9 +258,7 @@ macro_rules! check {
 macro_rules! debug_assert {
 	($($tokens:tt)*) => {
 		if ::core::cfg!(debug_assertions) {
-			if let Err(()) = $crate::__assert2_impl::check_impl!($crate, "debug_assert", $($tokens)*) {
-				panic!("assertion failed");
-			}
+			$crate::__assert2_impl::assert_impl!($crate, "debug_assert", $($tokens)*);
 		}
 	}
 }
@@ -308,18 +304,19 @@ macro_rules! debug_assert {
 /// #     format!("invalid name: {}", self.name)
 /// #   }
 /// # }
-/// let_assert!(let Ok(foo) = Foo::try_new("bar"));
+/// let_assert!(Ok(foo) = Foo::try_new("bar"));
 /// check!(foo.name() == "bar");
 ///
-/// let_assert!(let Err(Error::InvalidName(e)) = Foo::try_new("bogus name"));
+/// let_assert!(Err(Error::InvalidName(e)) = Foo::try_new("bogus name"));
 /// check!(e.name() == "bogus name");
 /// check!(e.to_string() == "invalid name: bogus name");
 /// # }
 /// ```
 #[macro_export]
+#[deprecated(since = "0.4.0", note = "use `assert2::assert!(let ...)` instead")]
 macro_rules! let_assert {
 	($($tokens:tt)*) => {
-		$crate::__assert2_impl::let_assert_impl!($crate, "let_assert", $($tokens)*);
+		$crate::__assert2_impl::assert_impl!($crate, "let_assert", let $($tokens)*);
 	}
 }
 

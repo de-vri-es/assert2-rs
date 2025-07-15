@@ -14,16 +14,16 @@ type FormatArgs = Punctuated<syn::Expr, syn::token::Comma>;
 #[doc(hidden)]
 #[proc_macro]
 pub fn check_impl(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
-	hygiene_bug::fix(check_or_assert_impl(syn::parse_macro_input!(tokens)).into())
+	hygiene_bug::fix(check(syn::parse_macro_input!(tokens)).into())
 }
 
 mod hygiene_bug;
-mod let_assert;
+mod assert;
 
 #[doc(hidden)]
 #[proc_macro]
-pub fn let_assert_impl(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
-	hygiene_bug::fix(let_assert::let_assert_impl(syn::parse_macro_input!(tokens)).into())
+pub fn assert_impl(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
+	hygiene_bug::fix(assert::assert(syn::parse_macro_input!(tokens)).into())
 }
 
 struct Context {
@@ -34,10 +34,13 @@ struct Context {
 	custom_msg: TokenStream,
 }
 
-/// Real implementation for assert!() and check!().
-fn check_or_assert_impl(args: Args) -> TokenStream {
-	let mut output = None;
-
+/// Real implementation for check!().
+///
+/// Check can not capture placeholders from patterns in the outer scope,
+/// since it continues even if the check fails.
+///
+/// But it does support capturing and additional testing with `&&` chains.
+fn check(args: Args) -> TokenStream {
 	let predicates = split_predicates(args.expr);
 	let mut fragments = Fragments::new();
 	let print_predicates = printable_predicates(&args.crate_name, &predicates, &mut fragments);
@@ -55,24 +58,23 @@ fn check_or_assert_impl(args: Args) -> TokenStream {
 		custom_msg,
 	};
 
-	for (i, expr) in predicates.into_iter().enumerate() {
-		let tokens = match expr {
-			syn::Expr::Binary(expr) => check_binary_op(&context, i, expr),
-			syn::Expr::Let(expr) => check_let_expr(&context, i, expr),
-			expr => check_bool_expr(&context, i , expr),
-		};
-		output = match output.take() {
-			None => Some(tokens),
-			Some(output) => Some(quote! { #output.and_then(|()| #tokens) }),
+	let mut assertions = quote! { Ok::<(), ()>(()) };
+	for (i, expr) in predicates.into_iter().enumerate().rev() {
+		assertions = match expr {
+			syn::Expr::Binary(expr) => check_binary_op(&context, i, expr, assertions),
+			syn::Expr::Let(expr) => check_let_expr(&context, i, expr, assertions),
+			expr => check_bool_expr(&context, i , expr, assertions),
 		};
 	}
-	output.unwrap_or_else(|| quote!(Ok::<(), ()>::(())))
+
+	assertions
 }
 
 fn check_binary_op(
 	context: &Context,
 	index: usize,
 	expr: syn::ExprBinary,
+	next_predicate: TokenStream,
 ) -> TokenStream {
 	match expr.op {
 		syn::BinOp::Eq(_) => (),
@@ -81,7 +83,7 @@ fn check_binary_op(
 		syn::BinOp::Ne(_) => (),
 		syn::BinOp::Ge(_) => (),
 		syn::BinOp::Gt(_) => (),
-		_ => return check_bool_expr(context, index, syn::Expr::Binary(expr)),
+		_ => return check_bool_expr(context, index, syn::Expr::Binary(expr), next_predicate),
 	};
 
 	let syn::ExprBinary { left, right, op, .. } = &expr;
@@ -117,8 +119,10 @@ fn check_binary_op(
 					custom_msg: #custom_msg,
 				}.print();
 				Err(())
-			}
-			_ => Ok(()),
+			},
+			_ => {
+				#next_predicate
+			},
 		}
 	}
 }
@@ -127,6 +131,7 @@ fn check_bool_expr(
 	context: &Context,
 	index: usize,
 	expr: syn::Expr,
+	next_predicate: TokenStream,
 ) -> TokenStream {
 	let Context {
 		crate_name,
@@ -138,6 +143,9 @@ fn check_bool_expr(
 
 	quote! {
 		match #expr {
+			true => {
+				#next_predicate
+			},
 			false => {
 				#crate_name::__assert2_impl::print::FailedCheck {
 					macro_name: #macro_name,
@@ -151,8 +159,7 @@ fn check_bool_expr(
 					custom_msg: #custom_msg,
 				}.print();
 				Err(())
-			}
-			true => Ok(()),
+			},
 		}
 	}
 }
@@ -161,6 +168,7 @@ fn check_let_expr(
 	context: &Context,
 	index: usize,
 	expr: syn::ExprLet,
+	next_predicate: TokenStream,
 ) -> TokenStream {
 	let syn::ExprLet {
 		pat,
@@ -177,9 +185,11 @@ fn check_let_expr(
 	} = context;
 
 	quote! {
-		match &(#expr) {
-			#pat => Ok(()),
-			value => {
+		match (#expr) {
+			#pat => {
+				#next_predicate
+			},
+			ref value => {
 				use #crate_name::__assert2_impl::maybe_debug::{IsDebug, IsMaybeNotDebug};
 				let value = (&&#crate_name::__assert2_impl::maybe_debug::Wrap(value)).__assert2_maybe_debug().wrap(value);
 				#crate_name::__assert2_impl::print::FailedCheck {

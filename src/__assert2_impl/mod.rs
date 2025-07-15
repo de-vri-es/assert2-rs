@@ -1,5 +1,5 @@
 pub use assert2_macros::check_impl;
-pub use assert2_macros::let_assert_impl;
+pub use assert2_macros::assert_impl;
 
 pub mod maybe_debug;
 pub mod print;

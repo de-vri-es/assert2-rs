@@ -1,7 +1,7 @@
 #![allow(clippy::nonminimal_bool)]
 
 use assert2::check;
-use assert2::let_assert;
+use assert2::assert;
 use std::fs::File;
 use std::io::ErrorKind;
 
@@ -10,7 +10,7 @@ fn main() {
 	check!(true && false);
 	check!(let Ok(_) = File::open("/non/existing/file"));
 
-	let_assert!(let Err(e) = File::open("/non/existing/file"));
+	assert!(let Err(e) = File::open("/non/existing/file"));
 	check!(e.kind() == ErrorKind::PermissionDenied);
 
 	#[derive(Debug, Eq, PartialEq)]

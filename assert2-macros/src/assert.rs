@@ -12,7 +12,7 @@ pub struct Args {
 	format_args: Option<FormatArgs>,
 }
 
-pub fn let_assert_impl(args: Args) -> TokenStream {
+pub fn assert(args: Args) -> TokenStream {
 	let custom_msg = match args.format_args {
 		Some(x) => quote!(Some(format_args!(#x))),
 		None => quote!(None),
@@ -88,7 +88,7 @@ fn assert_binary_expr(
 	index: usize,
 	expr: syn::ExprBinary,
 ) -> TokenStream {
-	let check = super::check_binary_op(context, index, expr);
+	let check = super::check_binary_op(context, index, expr, quote! { Ok::<(), ()>(()) });
 	quote! {
 		match #check {
 			Ok(()) => (),
@@ -102,7 +102,7 @@ fn assert_bool_expr(
 	index: usize,
 	expr: syn::Expr,
 ) -> TokenStream {
-	let check = super::check_bool_expr(context, index, expr);
+	let check = super::check_bool_expr(context, index, expr, quote! { Ok::<(), ()>(()) });
 	quote! {
 		match #check {
 			Ok(()) => (),
