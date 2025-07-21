@@ -23,7 +23,7 @@ pub struct FailedCheck<'a> {
 	pub line: u32,
 	pub column: u32,
 	pub custom_msg: Option<std::fmt::Arguments<'a>>,
-	pub predicates: &'a [Predicate<'a>],
+	pub predicates: &'a [(&'a str, Predicate<'a>)],
 	pub failed: usize,
 	pub expansion: Expansion<'a>,
 	pub fragments: &'a [(&'a str, &'a str)],
@@ -122,20 +122,29 @@ impl<'a> FailedCheck<'a> {
 		writer.write_styled(self.macro_name, MACRO_STYLE);
 		writer.write_styled("!( ", MACRO_STYLE);
 
+		writer.set_indent(2);
 		// Print all the predicates up to and including the failed one.
-		for (i, predicate) in self.predicates[..=self.failed].iter().enumerate() {
+		for (i, (glue, predicate)) in self.predicates[..=self.failed].iter().enumerate() {
 			if i > 0 {
-				writer.write_styled(" && ", DIMMED_STYLE);
+				writer.write_styled(glue, DIMMED_STYLE);
 			}
 			predicate.write(writer, i == self.failed, self.predicates.len() > 1);
 		}
 
-		// Print " && ... " if there are more predicates (which have not been checked).
-		if self.failed + 1 < self.predicates.len() {
-			writer.write_styled(" && ...", DIMMED_STYLE);
+		if let Some((glue, _next)) = self.predicates.get(self.failed + 1) {
+			writer.write_styled(glue, DIMMED_STYLE);
+			if glue.trim_end() == *glue {
+				writer.write(" ");
+			}
+			writer.write_styled("...", DIMMED_STYLE);
 		}
 
-		writer.write_styled(" )", MACRO_STYLE);
+		if writer.buffer_mut().ends_with('\n') {
+			writer.write_styled(")", MACRO_STYLE);
+		} else {
+			writer.write_styled(" )", MACRO_STYLE);
+		}
+		writer.set_indent(0);
 		writer.flush_line();
 	}
 }

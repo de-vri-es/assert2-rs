@@ -31,7 +31,7 @@ pub fn assert(args: Args) -> TokenStream {
 	};
 
 	let mut output = TokenStream::new();
-	for (i, predicate) in predicates.into_iter().enumerate() {
+	for (i, (_glue, predicate)) in predicates.into_iter().enumerate() {
 		let assertion = match predicate {
 			syn::Expr::Let(expr) => assert_let_expr(&context, i, expr),
 			syn::Expr::Binary(expr) => assert_binary_expr(&context, i, expr),

@@ -9,6 +9,7 @@ pub struct WrappingWriter<'a> {
 	current_line_width: usize,
 	current_line_undercurl: Vec<(std::ops::Range<usize>, yansi::Style)>,
 	need_flush: bool,
+	indent: usize,
 }
 
 impl<'a> WrappingWriter<'a> {
@@ -20,6 +21,7 @@ impl<'a> WrappingWriter<'a> {
 			current_line_width: 0,
 			current_line_undercurl: Vec::new(),
 			need_flush: false,
+			indent: 0,
 		}
 	}
 
@@ -39,6 +41,10 @@ impl<'a> WrappingWriter<'a> {
 		self.write_snippet(&Snippet::new(data).style(style));
 	}
 
+	pub fn set_indent(&mut self, indent: usize) {
+		self.indent = indent;
+	}
+
 	pub fn write_snippet(&mut self, snippet: &Snippet<'_>) {
 		let mut content = snippet.content.as_ref();
 		let style = snippet.style;
@@ -52,7 +58,10 @@ impl<'a> WrappingWriter<'a> {
 					end_index = Some(i);
 					break;
 				}
-				let char_width = c.width().unwrap_or(0);
+				let char_width = match c {
+					'\t' => 4,
+					c => c.width().unwrap_or(0),
+				};
 				if self.current_line_width + content_width + char_width > self.width {
 					end_index = Some(i);
 					break
@@ -74,26 +83,49 @@ impl<'a> WrappingWriter<'a> {
 	}
 
 	fn write_piece(&mut self, content: &str, width: usize, style: yansi::Style, undercurl: Option<yansi::Style>) {
-		if self.styling_enabled {
-			self.reserve(content.len() + 1 + style.prefix().len() + style.suffix().len());
-		} else {
-			self.reserve(content.len() + 1);
-		}
+		// Skip all work if the content is empty.
 		if content.is_empty() {
 			return;
 		}
 
-		self.need_flush = true;
+		// Reserve space in the buffer.
+		let mut reserve = content.len() + 1;
+		if !self.need_flush {
+			reserve += self.indent;
+		}
+		if self.styling_enabled {
+			reserve += style.prefix().len() + style.suffix().len();
+		}
+		self.reserve(reserve);
+
+		// Add indentation if needed.
+		if !self.need_flush {
+			for _ in 0..self.indent {
+				self.buffer.push(' ');
+			}
+			self.current_line_width += self.indent;
+		}
+
+		// Add stryling prefix.
 		if self.styling_enabled {
 			self.buffer.push_str(&style.prefix());
 		}
+
+		// Add actual contents.
 		self.buffer.push_str(content);
+
+		// Add styling suffix.
 		if self.styling_enabled {
 			self.buffer.push_str(&style.suffix());
 		}
+
+		// Mark added content for undercurling.
 		if let Some(undercurl) = undercurl {
 			self.current_line_undercurl.push((self.current_line_width..self.current_line_width + width, undercurl));
 		}
+
+		// Update bookkeeping.
+		self.need_flush = true;
 		self.current_line_width += width;
 	}
 

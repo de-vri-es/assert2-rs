@@ -7,6 +7,7 @@ use std::io::ErrorKind;
 
 fn main() {
 	check!(6 + 1 <= 2 * 3);
+	check!(5 < 6);
 	check!(true && false);
 	check!(let Ok(_) = File::open("/non/existing/file"));
 
@@ -37,4 +38,7 @@ fn main() {
 	check!(scrappy == coco);
 
 	check!((3, Some(4)) == [1, 2, 3].iter().size_hint());
+
+	assert!(let Err(e) = File::open("/non/existing/file")
+		&& e.kind() == ErrorKind::PermissionDenied);
 }

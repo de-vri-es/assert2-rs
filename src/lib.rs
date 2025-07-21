@@ -2,15 +2,16 @@
 
 //! All-purpose [`assert!(...)`](macro.assert.html) and [`check!(...)`](macro.check.html) macros, inspired by [Catch2](https://github.com/catchorg/Catch2).
 //! There is also a [`debug_assert!(...)`](macro.debug_assert.html) macro that is disabled on optimized builds by default.
-//! As cherry on top there is a [`let_assert!(...)`](macro.let_assert.html) macro that lets you test a pattern while capturing parts of it.
 //!
 //! # Why these macros?
 //!
 //! These macros offer some benefits over the assertions from the standard library:
 //!   * The macros parse your expression to detect comparisons and adjust the error message accordingly.
 //!     No more `assert_eq!(a, b)` or `assert_ne!(c, d)`, just write `assert!(1 + 1 == 2)`, or even `assert!(1 + 1 > 1)`!
-//!   * You can test for pattern matches: `assert!(let Err(_) = File::open("/non/existing/file"))`.
-//!   * You can capture parts of the pattern for further testing by using the `let_assert!(...)` macro.
+//!     They also split on the `&&` operator to show you which predicate failed.
+//!   * You can test for pattern matches: `assert!(let Err(e) = File::open("/non/existing/file"))`.
+//!   * The macros support [`let` chains](https://blog.rust-lang.org/2025/06/26/Rust-1.88.0/#let-chains) (even with compilers older than Rust 1.88).
+//!   * The `assert!(...)` macro makes `let` bindings available in the calling scope, so you can use the matched value after the assertion.
 //!   * The `check` macro can be used to perform multiple checks before panicking.
 //!   * The macros provide more information than the standard `std::assert!()` when the assertion fails.
 //!   * Colored failure messages with diffs!
@@ -84,11 +85,23 @@
 //!
 //! ```should_panic
 //! # use assert2::check;
+//! # use assert2::assert;
+//! # use std::fs::File;
+//! # use std::io::ErrorKind;
+//! assert!(let Err(e) = File::open("/non/existing/file"));
+//! check!(e.kind() == ErrorKind::PermissionDenied);
+//! ```
+//!
+//! ![Output](https://github.com/de-vri-es/assert2-rs/blob/54ee3141e9b23a0d9038697d34f29f25ef7fe810/let-assert.png?raw=true)
+//!
+//! ----------
+//!
+//! ```should_panic
+//! # use assert2::check;
 //! # use assert2::let_assert;
 //! # use std::fs::File;
 //! # use std::io::ErrorKind;
-//! let_assert!(Err(e) = File::open("/non/existing/file"));
-//! check!(e.kind() == ErrorKind::PermissionDenied);
+//! check!(let Err(e) = File::open("/non/existing/file") && e.kind() == ErrorKind::PermissionDenied);
 //! ```
 //!
 //! ![Output](https://github.com/de-vri-es/assert2-rs/blob/54ee3141e9b23a0d9038697d34f29f25ef7fe810/let-assert.png?raw=true)

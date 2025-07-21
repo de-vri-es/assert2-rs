@@ -5,9 +5,9 @@
 
 extern crate proc_macro;
 
-use proc_macro2::TokenStream;
+use proc_macro2::{Span, TokenStream};
 use quote::{ToTokens, quote};
-use syn::punctuated::Punctuated;
+use syn::{punctuated::Punctuated, spanned::Spanned};
 
 type FormatArgs = Punctuated<syn::Expr, syn::token::Comma>;
 
@@ -17,8 +17,8 @@ pub fn check_impl(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
 	hygiene_bug::fix(check(syn::parse_macro_input!(tokens)).into())
 }
 
-mod hygiene_bug;
 mod assert;
+mod hygiene_bug;
 
 #[doc(hidden)]
 #[proc_macro]
@@ -59,7 +59,7 @@ fn check(args: Args) -> TokenStream {
 	};
 
 	let mut assertions = quote! { ::core::result::Result::Ok::<(), ()>(()) };
-	for (i, expr) in predicates.into_iter().enumerate().rev() {
+	for (i, (_glue, expr)) in predicates.into_iter().enumerate().rev() {
 		assertions = match expr {
 			syn::Expr::Binary(expr) => check_binary_op(&context, i, expr, assertions),
 			syn::Expr::Let(expr) => check_let_expr(&context, i, expr, assertions),
@@ -211,33 +211,38 @@ fn check_let_expr(
 	}
 }
 
-fn split_predicates(input: syn::Expr) -> Vec<syn::Expr> {
+fn split_predicates(input: syn::Expr) -> Vec<(String, syn::Expr)> {
 	let mut output = Vec::new();
-	let mut remaining = vec![input];
-	while let Some(input) = remaining.pop() {
+	let mut remaining = vec![(String::new(), input)];
+	while let Some((outside_glue, input)) = remaining.pop() {
 		match input {
 			syn::Expr::Binary(expr) if matches!(expr.op, syn::BinOp::And(_)) => {
-				remaining.push(*expr.right);
-				remaining.push(*expr.left);
+				let inside_glue = operator_with_whitespace(&expr)
+					.unwrap_or_else(|| String::from(" && "));
+				remaining.push((inside_glue, *expr.right));
+				remaining.push((outside_glue, *expr.left));
 			},
-			other => output.push(other),
+			other => output.push((outside_glue, other)),
 		}
 	}
 	output
 }
 
-fn printable_predicates(crate_name: &syn::Path, predicates: &[syn::Expr], fragments: &mut Fragments) -> TokenStream {
+fn printable_predicates(crate_name: &syn::Path, predicates: &[(String, syn::Expr)], fragments: &mut Fragments) -> TokenStream {
 	let mut printable_predicates = Vec::new();
-	for predicate in predicates {
+	for (glue, predicate) in predicates {
 		let expresion = match predicate {
 			syn::Expr::Let(expr) => {
 				let pattern = expression_to_string(crate_name, expr.pat.to_token_stream(), fragments);
 				let expression = expression_to_string(crate_name, expr.expr.to_token_stream(), fragments);
 				quote! {
-					#crate_name::__assert2_impl::print::Predicate::Let {
-						pattern: #pattern,
-						expression: #expression,
-					}
+					(
+						#glue,
+						#crate_name::__assert2_impl::print::Predicate::Let {
+							pattern: #pattern,
+							expression: #expression,
+						},
+					)
 				}
 			},
 			syn::Expr::Binary(expr) => {
@@ -245,19 +250,25 @@ fn printable_predicates(crate_name: &syn::Path, predicates: &[syn::Expr], fragme
 				let operator = tokens_to_string(expr.op.to_token_stream(), fragments);
 				let right = expression_to_string(crate_name, expr.right.to_token_stream(), fragments);
 				quote! {
-					#crate_name::__assert2_impl::print::Predicate::Binary {
-						left: #left,
-						operator: #operator,
-						right: #right,
-					}
+					(
+						#glue,
+						#crate_name::__assert2_impl::print::Predicate::Binary {
+							left: #left,
+							operator: #operator,
+							right: #right,
+						},
+					)
 				}
 			},
 			expr => {
 				let expression = expression_to_string(crate_name, expr.to_token_stream(), fragments);
 				quote! {
-					#crate_name::__assert2_impl::print::Predicate::Bool {
-						expression: #expression,
-					}
+					(
+						#glue,
+						#crate_name::__assert2_impl::print::Predicate::Bool {
+							expression: #expression,
+						},
+					)
 				}
 			},
 		};
@@ -266,43 +277,132 @@ fn printable_predicates(crate_name: &syn::Path, predicates: &[syn::Expr], fragme
 	quote!( &[#(#printable_predicates),*] )
 }
 
-fn tokens_to_string(ts: TokenStream, fragments: &mut Fragments) -> TokenStream {
-	#[cfg(nightly)]
+fn tokens_to_string(tokens: TokenStream, fragments: &mut Fragments) -> TokenStream {
+	#[cfg(not(feature = "nightly"))]
+	{
+		let _ = fragments;
+	}
+
+	#[cfg(feature = "nightly")]
 	{
 		use syn::spanned::Spanned;
-		find_macro_fragments(ts.clone(), fragments);
-		if let Some(s) = ts.span().unwrap().source_text() {
+		find_macro_fragments(tokens.clone(), fragments);
+		if let Some(s) = tokens.span().unwrap().source_text() {
 			return quote!(#s);
 		}
 	}
 
-	let _ = fragments;
+	#[cfg(feature = "span-locations")]
+	{
+		let mut output = String::new();
+		let mut end = None;
+		let mut streams = vec![(tokens.into_iter(), None::<(char, String, proc_macro2::Span)>)];
+		while let Some((mut stream, delimiter)) = streams.pop() {
+			let tree = match stream.next() {
+				None => {
+					if let Some((delimiter, whitespace, delim_span)) = delimiter {
+						output.push_str(&whitespace);
+						output.push(delimiter);
+						end = Some(delim_span);
+					}
+					continue;
+				},
+				Some(tree) => tree,
+			};
+			streams.push((stream, delimiter));
 
-	let tokens = ts.to_string();
-	quote!(#tokens)
+			if let Some(end) = end {
+				match whitespace_between(end, tree.span()) {
+					Some(whitespace) => output.push_str(&whitespace),
+					None => {
+						print!("Failed to determine whitespace before tree");
+						output.push(' ');
+					},
+				};
+			};
+
+			match tree {
+				proc_macro2::TokenTree::Ident(ident) => {
+					output.push_str(&ident.to_string());
+					end = Some(ident.span());
+				},
+				proc_macro2::TokenTree::Punct(punct) => {
+					output.push(punct.as_char());
+					end = match punct.spacing() {
+						proc_macro2::Spacing::Joint => None,
+						proc_macro2::Spacing::Alone => Some(punct.span()),
+					};
+				},
+				proc_macro2::TokenTree::Literal(literal) => {
+					output.push_str(&literal.to_string());
+					end = Some(literal.span());
+				},
+				proc_macro2::TokenTree::Group(group) => {
+					let (whitespace_open, whitespace_close) = whitespace_inside(&group)
+						.unwrap_or((String::new(), String::new()));
+					let (open, close) = match group.delimiter() {
+						proc_macro2::Delimiter::None => ('(', ')'),
+						proc_macro2::Delimiter::Parenthesis => ('(', ')'),
+						proc_macro2::Delimiter::Brace => ('{', '}'),
+						proc_macro2::Delimiter::Bracket => ('[', ']'),
+					};
+					output.push(open);
+					output.push_str(&whitespace_open);
+					let stream = group.stream();
+					if !stream.is_empty() {
+						end = None;
+						streams.push((stream.into_iter(), Some((close, whitespace_close, group.span_close()))));
+					} else {
+						output.push_str(&whitespace_close);
+						output.push(close);
+						end = Some(group.span_close());
+					}
+				},
+			}
+
+		}
+
+		quote!(#output)
+	}
+
+
+	#[cfg(not(feature = "span-locations"))]
+	{
+		let tokens = tokens.to_string();
+		quote!(#tokens)
+	}
 }
 
-fn expression_to_string(crate_name: &syn::Path, ts: TokenStream, fragments: &mut Fragments) -> TokenStream {
-	#[cfg(nightly)]
+fn expression_to_string(crate_name: &syn::Path, tokens: TokenStream, fragments: &mut Fragments) -> TokenStream {
+	#[cfg(feature = "nightly")]
 	{
+		let _ = crate_name;
 		use syn::spanned::Spanned;
-		find_macro_fragments(ts.clone(), fragments);
-		if let Some(s) = ts.span().unwrap().source_text() {
+		find_macro_fragments(tokens.clone(), fragments);
+		if let Some(s) = tokens.span().unwrap().source_text() {
 			return quote!(#s);
 		}
 	}
 
-	let _ = fragments;
+	#[cfg(feature = "span-locations")]
+	{
+		let _ = crate_name;
+		tokens_to_string(tokens, fragments)
+	}
 
-	quote!(#crate_name::__assert2_stringify!(#ts))
+	#[cfg(not(feature = "span-locations"))]
+	{
+		let _ = fragments;
+		quote!(#crate_name::__assert2_stringify!(#tokens))
+	}
 }
 
-#[cfg(nightly)]
-fn find_macro_fragments(ts: TokenStream, f: &mut Fragments) {
+#[cfg(feature = "nightly")]
+fn find_macro_fragments(tokens: TokenStream, f: &mut Fragments) {
 	use syn::spanned::Spanned;
 	use proc_macro2::{Delimiter, TokenTree};
 
-	for token in ts {
+	for token in tokens {
 		if let TokenTree::Group(g) = token {
 			if g.delimiter() == Delimiter::None {
 				let name = g.span().unwrap().source_text().unwrap_or_else(|| "???".into());
@@ -317,6 +417,122 @@ fn find_macro_fragments(ts: TokenStream, f: &mut Fragments) {
 			}
 			find_macro_fragments(g.stream(), f);
 		}
+	}
+}
+
+/// Get the operator of a binary expression with surrounding whitespace (if possible).
+fn operator_with_whitespace(expr: &syn::ExprBinary) -> Option<String> {
+	let left_spacing = whitespace_between(expr.left.span(), expr.op.span())?;
+	let right_spacing = whitespace_between(expr.op.span(), expr.right.span())?;
+	Some(format!("{}{}{}", left_spacing, expr.op.into_token_stream(), right_spacing))
+}
+
+/// Get the whitespace inside a group, between the delimiters and the contents.
+#[cfg(feature = "span-locations")]
+fn whitespace_inside(group: &proc_macro2::Group) -> Option<(String, String)> {
+	#[cfg(not(feature = "span-locations"))]
+	{
+		_ = group;
+		None
+	}
+
+	#[cfg(feature = "span-locations")]
+	#[allow(clippy::incompatible_msrv)] // code enabled only for comptabile compilers
+	{
+		let content = group.stream();
+		if content.is_empty() {
+			let group_start = group.span().unwrap().start();
+			let group_end = group.span().unwrap().end();
+			let spacing = if group_end.line() == group_start.line() {
+				" ".repeat((group_end.column() - 1).checked_sub(group_start.column() + 1)?)
+			} else {
+				let lines = group_end.line().checked_sub(group_start.line())?;
+				let spaces = group_end.column() - 2;
+				let mut output = String::with_capacity(lines + spaces);
+				for _ in 0..lines { output.push('\n') };
+				for _ in 0..spaces { output.push(' ') };
+				output
+			};
+			return Some((spacing, String::new()));
+		}
+
+		let group_start = group.span().unwrap().start();
+		let group_end = group.span().unwrap().end();
+		let content_span = content.span();
+		let content_start = content_span.unwrap().start();
+		let content_end = content_span.unwrap().end();
+
+		if group_start.file() != content_start.file() || group_end.file() != content_end.file() {
+			return None;
+		}
+
+		let spacing_start = if group_start.line() == content_start.line() {
+			" ".repeat(content_start.column().checked_sub(group_start.column() + 1)?)
+		} else {
+			let lines = content_start.line().checked_sub(group_start.line())?;
+			let spaces = content_start.column() - 1;
+			let mut output = String::with_capacity(lines + spaces);
+			for _ in 0..lines { output.push('\n') };
+			for _ in 0..spaces { output.push(' ') };
+			output
+		};
+
+		let spacing_end = if content_end.line() == group_end.line() {
+			" ".repeat((group_end.column() - 1).checked_sub(content_end.column())?)
+		} else {
+			let lines = group_end.line().checked_sub(content_end.line())?;
+			let spaces = group_end.column() - 2;
+			let mut output = String::with_capacity(lines + spaces);
+			for _ in 0..lines { output.push('\n') };
+			for _ in 0..spaces { output.push(' ') };
+			output
+		};
+
+		Some((spacing_start, spacing_end))
+	}
+}
+
+/// Get the source code between two spans (if possible).
+fn whitespace_between(a: Span, b: Span) -> Option<String> {
+	#[cfg(not(feature = "span-locations"))]
+	{
+		let _ = (a, b);
+		None
+	}
+	#[cfg(feature = "span-locations")]
+	#[allow(clippy::incompatible_msrv)] // code enabled only for comptabile compilers
+	{
+		let span_a = a.span().unwrap().end();
+		let span_b = b.span().unwrap().start();
+
+		if span_a.file() != span_b.file() {
+			return None;
+		}
+		if span_a.line() == span_b.line() {
+			let spaces = match span_b.column().checked_sub(span_a.column()) {
+				None => {
+					return None;
+				}
+				Some(x) => x,
+			};
+			return Some(" ".repeat(spaces));
+		}
+
+		let lines = match span_b.line().checked_sub(span_a.line()) {
+				None => {
+					return None;
+				}
+				Some(x) => x,
+		};
+		let spaces = span_b.column().saturating_sub(1);
+		let mut output = String::with_capacity(lines + spaces);
+		for _ in 0..lines {
+			output.push('\n');
+		}
+		for _ in 0..spaces {
+			output.push(' ');
+		}
+		Some(output)
 	}
 }
 

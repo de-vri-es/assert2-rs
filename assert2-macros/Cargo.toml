@@ -14,6 +14,10 @@ edition = "2021"
 repository = "https://github.com/de-vri-es/assert2-rs"
 documentation = "https://docs.rs/assert2"
 
+[features]
+span-locations = []
+nightly = []
+
 [lib]
 proc-macro = true
 
