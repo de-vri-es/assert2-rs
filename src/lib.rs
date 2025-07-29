@@ -8,8 +8,8 @@
 //! These macros offer some benefits over the assertions from the standard library:
 //!   * The macros parse your expression to detect comparisons and adjust the error message accordingly.
 //!     No more `assert_eq!(a, b)` or `assert_ne!(c, d)`, just write `assert!(1 + 1 == 2)`, or even `assert!(1 + 1 > 1)`!
-//!     They also split on the `&&` operator to show you which predicate failed.
 //!   * You can test for pattern matches: `assert!(let Err(e) = File::open("/non/existing/file"))`.
+//!   * The macros split your assertions on `&&` operators to show you which predicate failed.
 //!   * The macros support [`let` chains](https://blog.rust-lang.org/2025/06/26/Rust-1.88.0/#let-chains) (even with compilers older than Rust 1.88).
 //!   * The `assert!(...)` macro makes `let` bindings available in the calling scope, so you can use the matched value after the assertion.
 //!   * The `check` macro can be used to perform multiple checks before panicking.
@@ -123,14 +123,57 @@
 //! On stable and beta, it falls back to stringifying the expression.
 //! This makes the output a bit more readable on nightly.
 //!
-//! # The `let_assert!()` macro
-//! You can also use the [`let_assert!(...)`](macro.let_assert.html).
-//! It is very similar to `assert!(let ...)`,
-//! but all placeholders will be made available as variables in the calling scope.
-//!
+//! # Capturing variables
+//! When you use the [`assert!(...)`](macro.assert.html) macro, any placeholders in `let` patterns are captured.
+//! They will be made available in the calling scope as if they were a regular `let` binding.
 //! This allows you to run additional checks on the captured variables.
 //!
 //! For example:
+//!
+//! ```
+//! # fn main() {
+//! # use assert2::assert;
+//! # use assert2::check;
+//! # struct Foo {
+//! #  name: &'static str,
+//! # }
+//! # enum Error {
+//! #   InvalidName(InvalidNameError),
+//! # }
+//! # struct InvalidNameError {
+//! #   name: &'static str,
+//! # }
+//! # impl Foo {
+//! #   fn try_new(name: &'static str) -> Result<Self, Error> {
+//! #     if name == "bar" {
+//! #       Ok(Self { name })
+//! #     } else {
+//! #       Err(Error::InvalidName(InvalidNameError { name }))
+//! #     }
+//! #   }
+//! #   fn name(&self) -> &'static str {
+//! #     self.name
+//! #   }
+//! # }
+//! # impl InvalidNameError {
+//! #   fn name(&self) -> &'static str {
+//! #     self.name
+//! #   }
+//! #   fn to_string(&self) -> String {
+//! #     format!("invalid name: {}", self.name)
+//! #   }
+//! # }
+//! assert!(let Ok(foo) = Foo::try_new("bar"));
+//! check!(foo.name() == "bar");
+//!
+//! assert!(let Err(Error::InvalidName(e)) = Foo::try_new("bogus name"));
+//! check!(e.name() == "bogus name");
+//! check!(e.to_string() == "invalid name: bogus name");
+//! # }
+//! ```
+//!
+//! The [`check!(...)`](macro.check.html) can not do this, as code following the macro can still be executed, even if the check faild.
+//! However, you can run multiple checks inside the same macro call using `let` chains:
 //!
 //! ```
 //! # fn main() {
@@ -165,12 +208,13 @@
 //! #     format!("invalid name: {}", self.name)
 //! #   }
 //! # }
-//! let_assert!(Ok(foo) = Foo::try_new("bar"));
-//! check!(foo.name() == "bar");
+//! check!(let Ok(foo) = Foo::try_new("bar") && foo.name() == "bar");
 //!
-//! let_assert!(Err(Error::InvalidName(e)) = Foo::try_new("bogus name"));
-//! check!(e.name() == "bogus name");
-//! check!(e.to_string() == "invalid name: bogus name");
+//! check!(
+//!     let Err(Error::InvalidName(e)) = Foo::try_new("bogus name")
+//!     && e.name() == "bogus name"
+//!     && e.to_string() == "invalid name: bogus name"
+//! );
 //! # }
 //! ```
 //!
@@ -210,6 +254,18 @@ pub mod __assert2_impl;
 ///
 /// Use [`check!`](macro.check.html) if you still want further checks to be executed.
 ///
+/// All placeholders in `let` patterns are made available in the calling scope.
+/// Additionaly, the macro supports `let` chains (regardless of your compiler version):
+/// ```
+/// # use assert2::assert;
+/// assert!(
+///     let Err(e) = std::fs::File::open("/non/existing/file")
+///     && e.kind() == std::io::ErrorKind::NotFound
+///     && let Some(os_code) = e.raw_os_error()
+/// );
+/// println!("OS error code: {os_code}");
+/// ```
+///
 /// # Custom messages
 /// You can pass additional arguments to the macro.
 /// These will be used to print a custom message in addition to the normal message.
@@ -239,6 +295,18 @@ macro_rules! assert {
 /// Currently, this macro uses a scope guard to delay the panic.
 /// However, this may change in the future if there is a way to signal a test failure without panicking.
 /// **Do not rely on `check!()` to panic**.
+///
+/// Unlike the [`assert!(...)`][assert] macro, placeholders inside a `check!(...)` call are not made available in the calling scope.
+/// However, you can use the placeholders for further testing with a `let` chain in the same macro call:
+///
+/// ```
+/// # use assert2::check;
+/// check!(
+///     let Err(e) = std::fs::File::open("/non/existing/file")
+///     && e.kind() == std::io::ErrorKind::NotFound
+///     && let Some(_) = e.raw_os_error()
+/// );
+/// ```
 ///
 /// # Custom messages
 /// You can pass additional arguments to the macro.
