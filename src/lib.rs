@@ -6,17 +6,16 @@
 //! # Why these macros?
 //!
 //! These macros offer some benefits over the assertions from the standard library:
-//!   * The macros parse your expression to detect comparisons and adjust the error message accordingly.
-//!     No more `assert_eq!(a, b)` or `assert_ne!(c, d)`, just write `assert!(1 + 1 == 2)`, or even `assert!(1 + 1 > 1)`!
-//!   * You can test for pattern matches: `assert!(let Err(e) = File::open("/non/existing/file"))`.
-//!   * The macros split your assertions on `&&` operators to show you which predicate failed.
-//!   * The macros support [`let` chains](https://blog.rust-lang.org/2025/06/26/Rust-1.88.0/#let-chains) (even with compilers older than Rust 1.88).
-//!   * The `assert!(...)` macro makes `let` bindings available in the calling scope, so you can use the matched value after the assertion.
-//!   * The `check` macro can be used to perform multiple checks before panicking.
-//!   * The macros provide more information than the standard `std::assert!()` when the assertion fails.
-//!   * Colored failure messages with diffs!
+//!   * Use comparison operators inside the assertion instead of specialized macros: `assert!(1 + 1 == 2)`.
+//!   * Test pattern matches: `assert!(let Err(e) = File::open("/non/existing/file"))`.
+//!   * Use [let chains](https://blog.rust-lang.org/2025/06/26/Rust-1.88.0/#let-chains) (even with compilers older than Rust 1.88).
+//!   * See which part of a `&&` chain failed.
+//!   * Re-use captured variables from pattern matches in later code with `assert!(...)`.
+//!   * Perform multiple check before panicking with `check!(...)`.
+//!   * Colored failure messages!
+//!   * Highlighted diffs between the Debug form of the expected and actual values!
 //!
-//! The macros also accept additional arguments for a custom message, so it is fully compatible with `std::assert`.
+//! The macros also accept additional arguments for a custom message, so it is fully compatible with `std::assert!(...)`.
 //! This means that you can import the macro as a drop in replacement:
 //! ```
 //! use assert2::assert;
@@ -101,7 +100,10 @@
 //! # use assert2::let_assert;
 //! # use std::fs::File;
 //! # use std::io::ErrorKind;
-//! check!(let Err(e) = File::open("/non/existing/file") && e.kind() == ErrorKind::PermissionDenied);
+//! check!(
+//!   let Err(e) = File::open("/non/existing/file")
+//!   && e.kind() == ErrorKind::PermissionDenied
+//! );
 //! ```
 //!
 //! ![Output](https://github.com/de-vri-es/assert2-rs/blob/54ee3141e9b23a0d9038697d34f29f25ef7fe810/let-assert.png?raw=true)
@@ -172,7 +174,7 @@
 //! # }
 //! ```
 //!
-//! The [`check!(...)`](macro.check.html) can not do this, as code following the macro can still be executed, even if the check faild.
+//! The [`check!(...)`](macro.check.html) can not do this, as code following the macro can still be executed, even if the check failed.
 //! However, you can run multiple checks inside the same macro call using `let` chains:
 //!
 //! ```
