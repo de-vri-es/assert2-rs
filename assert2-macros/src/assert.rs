@@ -5,7 +5,7 @@ use crate::Args;
 use crate::Context;
 use crate::check::{check_binary_op, check_bool_expr};
 
-pub fn assert(args: Args) -> TokenStream {
+pub(crate) fn assert(args: Args) -> TokenStream {
 	let context = args.into_context();
 
 	let mut output = TokenStream::new();

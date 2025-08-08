@@ -9,7 +9,7 @@ use crate::{Args, Context};
 /// since it continues even if the check fails.
 ///
 /// But it does support capturing and additional testing with `&&` chains.
-pub fn check(args: Args) -> TokenStream {
+pub(crate) fn check(args: Args) -> TokenStream {
 	let context = args.into_context();
 
 	let mut assertions = quote! { ::core::result::Result::Ok::<(), ()>(()) };
@@ -24,7 +24,7 @@ pub fn check(args: Args) -> TokenStream {
 	assertions
 }
 
-pub fn check_binary_op(
+pub(crate) fn check_binary_op(
 	context: &Context,
 	index: usize,
 	expr: &syn::ExprBinary,
@@ -82,7 +82,7 @@ pub fn check_binary_op(
 	}
 }
 
-pub fn check_bool_expr(
+pub(crate) fn check_bool_expr(
 	context: &Context,
 	index: usize,
 	expr: &impl quote::ToTokens,
@@ -120,7 +120,7 @@ pub fn check_bool_expr(
 	}
 }
 
-pub fn check_let_expr(
+pub(crate) fn check_let_expr(
 	context: &Context,
 	index: usize,
 	expr: &syn::ExprLet,
