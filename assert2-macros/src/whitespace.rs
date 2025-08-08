@@ -1,11 +1,13 @@
 use proc_macro2::Span;
 use quote::ToTokens as _;
-use syn::spanned::Spanned as _;
 
 /// Get the operator of a binary expression with surrounding whitespace (if possible).
 pub fn operator_with_whitespace(expr: &syn::ExprBinary) -> Option<String> {
-	let left_spacing = whitespace_between(expr.left.span(), expr.op.span())?;
-	let right_spacing = whitespace_between(expr.op.span(), expr.right.span())?;
+	let (_left_start, left_end) = stream_start_end_spans(expr.left.to_token_stream())?;
+	let (op_start, op_end) = stream_start_end_spans(expr.op.to_token_stream())?;
+	let (right_start, _right_end) = stream_start_end_spans(expr.right.to_token_stream())?;
+	let left_spacing = whitespace_between(left_end, op_start)?;
+	let right_spacing = whitespace_between(op_end, right_start)?;
 	Some(format!("{}{}{}", left_spacing, expr.op.into_token_stream(), right_spacing))
 }
 
