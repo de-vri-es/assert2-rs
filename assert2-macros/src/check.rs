@@ -65,9 +65,9 @@ pub(crate) fn check_binary_op(
 					column: column!(),
 					predicates: #print_predicates,
 					failed: #index,
-					expansion: #crate_name::__assert2_impl::print::Expansion::Binary{
-						left: &left,
-						right: &right,
+					expansion: #crate_name::__assert2_impl::print::Expansion::Binary {
+						left: (&left as &dyn ::core::fmt::Debug),
+						right: (&right as &dyn ::core::fmt::Debug),
 						operator: #op_str,
 					},
 					fragments: #fragments,
@@ -157,7 +157,7 @@ pub(crate) fn check_let_expr(
 					predicates: #print_predicates,
 					failed: #index,
 					expansion: #crate_name::__assert2_impl::print::Expansion::Let {
-						expression: &value,
+						expression: &value as &dyn ::core::fmt::Debug,
 					},
 					fragments: #fragments,
 					custom_msg: #custom_msg,

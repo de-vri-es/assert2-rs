@@ -81,7 +81,7 @@ fn assert_let_expr(
 				predicates: #print_predicates,
 				failed: #index,
 				expansion: #crate_name::__assert2_impl::print::Expansion::Let {
-					expression: &value,
+					expression: &value as &dyn ::core::fmt::Debug,
 				},
 				fragments: #fragments,
 			}.print();

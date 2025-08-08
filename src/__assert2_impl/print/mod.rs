@@ -60,25 +60,6 @@ pub enum Expansion<'a> {
 	Bool,
 }
 
-pub struct BinaryOp<'a, Left, Right> {
-	pub left: &'a Left,
-	pub right: &'a Right,
-	pub operator: &'a str,
-	pub left_expr: &'a str,
-	pub right_expr: &'a str,
-}
-
-pub struct BooleanExpr<'a> {
-	pub expression: &'a str,
-}
-
-pub struct MatchExpr<'a, Value> {
-	pub print_let: bool,
-	pub value: &'a Value,
-	pub pattern: &'a str,
-	pub expression: &'a str,
-}
-
 impl<'a> FailedCheck<'a> {
 	#[rustfmt::skip]
 	pub fn print(&self) {
