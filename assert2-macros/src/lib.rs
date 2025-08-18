@@ -68,7 +68,8 @@ impl syn::parse::Parse for Args {
 
 impl Args {
 	fn into_context(self) -> Context {
-		let predicates = split_predicates(self.expression);
+		let mut predicates = split_predicates(self.expression);
+		reindent_predicates(&mut predicates, 4);
 		let mut fragments = Fragments::new();
 		let print_predicates = printable_predicates(&self.crate_name, &predicates, &mut fragments);
 
@@ -112,6 +113,55 @@ fn split_predicates(input: syn::Expr) -> Vec<(String, syn::Expr)> {
 		}
 	}
 	output
+}
+
+/// Change the initial indentation of the predicates.
+///
+/// All common leading spaces are removed and replaced with `reindent` spaces.
+///
+/// If the first predicate has no glue, and there is any glue with a newline,
+/// new glue is added to put it on a new line with indentation.
+fn reindent_predicates(predicates: &mut [(String, syn::Expr)], reindent: usize) {
+	let mut total_newlines = 0;
+	let mut min_indent = None;
+	for (i, (glue, _expr)) in predicates.iter().enumerate() {
+		if i == 0 && glue.is_empty() {
+			continue;
+		}
+
+		let newlines = glue.chars().take_while(|&c| c == '\n').count();
+		total_newlines += newlines;
+		let indent = glue[newlines..].chars().take_while(|&c| c == ' ').count();
+		match min_indent {
+			None => min_indent = Some(indent),
+			Some(old) => min_indent = Some(old.min(indent)),
+		}
+	}
+
+	let min_indent = min_indent.unwrap_or(0);
+
+	for (i, (glue, _expr)) in predicates.iter_mut().enumerate() {
+		let newlines = glue.chars().take_while(|&c| c == '\n').count();
+		let old_indent = glue[newlines..].chars().take_while(|&c| c == ' ').count();
+
+		if i == 0 && glue.is_empty() && total_newlines > 0 {
+			glue.push('\n');
+			for _ in 0..reindent {
+				glue.push(' ');
+			}
+			continue;
+		}
+
+		let mut new_glue = String::with_capacity(glue.len() - min_indent + reindent);
+		for _ in 0..newlines {
+			new_glue.push('\n');
+		}
+		for _ in 0..(old_indent - min_indent) + reindent {
+			new_glue.push(' ');
+		}
+		new_glue.push_str(&glue[newlines + old_indent..]);
+		*glue = new_glue;
+	}
 }
 
 fn printable_predicates(crate_name: &syn::Path, predicates: &[(String, syn::Expr)], fragments: &mut Fragments) -> TokenStream {

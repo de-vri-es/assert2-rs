@@ -106,9 +106,7 @@ impl<'a> FailedCheck<'a> {
 		writer.set_indent(2);
 		// Print all the predicates up to and including the failed one.
 		for (i, (glue, predicate)) in self.predicates[..=self.failed].iter().enumerate() {
-			if i > 0 {
-				writer.write_styled(glue, DIMMED_STYLE);
-			}
+			writer.write_styled(glue, DIMMED_STYLE);
 			predicate.write(writer, i == self.failed, self.predicates.len() > 1);
 		}
 
