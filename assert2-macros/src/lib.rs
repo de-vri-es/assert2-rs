@@ -7,193 +7,393 @@ extern crate proc_macro;
 
 use proc_macro2::TokenStream;
 use quote::{ToTokens, quote};
-use syn::punctuated::Punctuated;
 
-type FormatArgs = Punctuated<syn::Expr, syn::token::Comma>;
+use crate::whitespace::{OperatorWithSpacing, Whitespace};
+
+type FormatArgs = syn::punctuated::Punctuated<syn::Expr, syn::token::Comma>;
+
+mod assert;
+mod check;
+mod hygiene_bug;
+mod whitespace;
+
+#[doc(hidden)]
+#[proc_macro]
+pub fn assert_impl(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
+	hygiene_bug::fix(assert::assert(syn::parse_macro_input!(tokens)).into())
+}
 
 #[doc(hidden)]
 #[proc_macro]
 pub fn check_impl(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
-	hygiene_bug::fix(check_or_assert_impl(syn::parse_macro_input!(tokens)).into())
+	hygiene_bug::fix(check::check(syn::parse_macro_input!(tokens)).into())
 }
 
-mod hygiene_bug;
-mod let_assert;
+/// Parsed arguments for the `check` or `assert` macro.
+struct Args {
+	/// The path of the `assert2` crate.
+	crate_name: syn::Path,
 
-#[doc(hidden)]
-#[proc_macro]
-pub fn let_assert_impl(tokens: proc_macro::TokenStream) -> proc_macro::TokenStream {
-	hygiene_bug::fix(let_assert::let_assert_impl(syn::parse_macro_input!(tokens)).into())
+	/// The name of the macro being called.
+	macro_name: syn::Expr,
+
+	/// The expression passed to the macro,
+	expression: syn::Expr,
+
+	/// Optional extra message (all arguments forwarded to format_args!()).
+	format_args: Option<FormatArgs>,
 }
 
-/// Real implementation for assert!() and check!().
-fn check_or_assert_impl(args: Args) -> TokenStream {
-	match args.expr {
-		syn::Expr::Binary(expr) => check_binary_op(args.crate_name, args.macro_name, expr, args.format_args),
-		syn::Expr::Let(expr) => check_let_expr(args.crate_name, args.macro_name, expr, args.format_args),
-		expr => check_bool_expr(args.crate_name, args.macro_name, expr, args.format_args),
+impl syn::parse::Parse for Args {
+	fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+		let crate_name = input.parse()?;
+		let _comma: syn::token::Comma = input.parse()?;
+		let macro_name = input.parse()?;
+		let _comma: syn::token::Comma = input.parse()?;
+		let expression = syn::Expr::parse_without_eager_brace(input)?;
+		let format_args = if input.is_empty() {
+			FormatArgs::new()
+		} else {
+			input.parse::<syn::token::Comma>()?;
+			FormatArgs::parse_terminated(input)?
+		};
+
+		let format_args = Some(format_args).filter(|x| !x.is_empty());
+		Ok(Self {
+			crate_name,
+			macro_name,
+			expression,
+			format_args,
+		})
 	}
 }
 
-fn check_binary_op(crate_name: syn::Path, macro_name: syn::Expr, expr: syn::ExprBinary, format_args: Option<FormatArgs>) -> TokenStream {
-	match expr.op {
-		syn::BinOp::Eq(_) => (),
-		syn::BinOp::Lt(_) => (),
-		syn::BinOp::Le(_) => (),
-		syn::BinOp::Ne(_) => (),
-		syn::BinOp::Ge(_) => (),
-		syn::BinOp::Gt(_) => (),
-		_ => return check_bool_expr(crate_name, macro_name, syn::Expr::Binary(expr), format_args),
-	};
+impl Args {
+	fn into_context(self) -> Context {
+		let mut predicates = split_predicates(self.expression);
+		let multiline = reindent_predicates(&mut predicates, 4);
+		let mut fragments = Fragments::new();
+		let print_predicates = printable_predicates(&self.crate_name, &predicates, &mut fragments);
 
-	let syn::ExprBinary { left, right, op, .. } = &expr;
-	let mut fragments = Fragments::new();
-	let left_expr = expression_to_string(&crate_name, left.to_token_stream(), &mut fragments);
-	let right_expr = expression_to_string(&crate_name, right.to_token_stream(), &mut fragments);
-	let op_str = tokens_to_string(op.to_token_stream(), &mut fragments);
+		let custom_msg = match self.format_args {
+			Some(x) => quote!(::core::option::Option::Some(::core::format_args!(#x))),
+			None => quote!(::core::option::Option::None),
+		};
 
-	let custom_msg = match format_args {
-		Some(x) => quote!(Some(format_args!(#x))),
-		None => quote!(None),
-	};
-
-	quote! {
-		match (&(#left), &(#right)) {
-			(left, right) if !(left #op right) => {
-				use #crate_name::__assert2_impl::maybe_debug::{IsDebug, IsMaybeNotDebug};
-				let left = (&&#crate_name::__assert2_impl::maybe_debug::Wrap(left)).__assert2_maybe_debug().wrap(left);
-				let right = (&&#crate_name::__assert2_impl::maybe_debug::Wrap(right)).__assert2_maybe_debug().wrap(right);
-				#crate_name::__assert2_impl::print::FailedCheck {
-					macro_name: #macro_name,
-					file: file!(),
-					line: line!(),
-					column: column!(),
-					custom_msg: #custom_msg,
-					expression: #crate_name::__assert2_impl::print::BinaryOp {
-						left: &left,
-						right: &right,
-						operator: #op_str,
-						left_expr: #left_expr,
-						right_expr: #right_expr,
-					},
-					fragments: #fragments,
-				}.print();
-				Err(())
-			}
-			_ => Ok(()),
+		Context {
+			crate_name: self.crate_name,
+			macro_name: self.macro_name,
+			predicates,
+			print_predicates,
+			multiline,
+			fragments,
+			custom_msg,
 		}
 	}
 }
 
-fn check_bool_expr(crate_name: syn::Path, macro_name: syn::Expr, expr: syn::Expr, format_args: Option<FormatArgs>) -> TokenStream {
-	let mut fragments = Fragments::new();
-	let expr_str = expression_to_string(&crate_name, expr.to_token_stream(), &mut fragments);
+struct Context {
+	crate_name: syn::Path,
+	macro_name: syn::Expr,
+	predicates: Vec<Predicate>,
+	print_predicates: TokenStream,
+	multiline: bool,
+	fragments: Fragments,
+	custom_msg: TokenStream,
+}
 
-	let custom_msg = match format_args {
-		Some(x) => quote!(Some(format_args!(#x))),
-		None => quote!(None),
-	};
+struct Predicate {
+	prefix: PredicatePrefix,
+	expr: syn::Expr,
+}
 
-	quote! {
-		match #expr {
-			false => {
-				#crate_name::__assert2_impl::print::FailedCheck {
-					macro_name: #macro_name,
-					file: file!(),
-					line: line!(),
-					column: column!(),
-					custom_msg: #custom_msg,
-					expression: #crate_name::__assert2_impl::print::BooleanExpr {
-						expression: #expr_str,
-					},
-					fragments: #fragments,
-				}.print();
-				Err(())
-			}
-			true => Ok(()),
+enum PredicatePrefix {
+	None,
+	Whitespace(Whitespace),
+	Operator(OperatorWithSpacing),
+}
+
+impl PredicatePrefix {
+	fn total_newlines(&self) -> usize {
+		match self {
+			Self::None => 0,
+			Self::Whitespace(x) => x.lines,
+			Self::Operator(x) => x.total_newlines(),
+		}
+	}
+
+	fn min_indent(&self) -> Option<usize> {
+		match self {
+			Self::None => None,
+			Self::Whitespace(x) => x.indentation(),
+			Self::Operator(x) => x.min_indent(),
+		}
+	}
+
+	fn adjust_indent(&mut self, adjust: isize) {
+		match self {
+			Self::None => (),
+			Self::Whitespace(x) => x.adjust_indent(adjust),
+			Self::Operator(x) => x.adjust_indent(adjust),
 		}
 	}
 }
 
-fn check_let_expr(crate_name: syn::Path, macro_name: syn::Expr, expr: syn::ExprLet, format_args: Option<FormatArgs>) -> TokenStream {
-	let syn::ExprLet {
-		pat,
-		expr,
-		..
-	} = expr;
-
-	let mut fragments = Fragments::new();
-	let pat_str = tokens_to_string(pat.to_token_stream(), &mut fragments);
-	let expr_str = expression_to_string(&crate_name, expr.to_token_stream(), &mut fragments);
-
-	let custom_msg = match format_args {
-		Some(x) => quote!(Some(format_args!(#x))),
-		None => quote!(None),
-	};
-
-	quote! {
-		match &(#expr) {
-			#pat => Ok(()),
-			value => {
-				use #crate_name::__assert2_impl::maybe_debug::{IsDebug, IsMaybeNotDebug};
-				let value = (&&#crate_name::__assert2_impl::maybe_debug::Wrap(value)).__assert2_maybe_debug().wrap(value);
-				#crate_name::__assert2_impl::print::FailedCheck {
-					macro_name: #macro_name,
-					file: file!(),
-					line: line!(),
-					column: column!(),
-					custom_msg: #custom_msg,
-					expression: #crate_name::__assert2_impl::print::MatchExpr {
-						print_let: true,
-						value: &value,
-						pattern: #pat_str,
-						expression: #expr_str,
-					},
-					fragments: #fragments,
-				}.print();
-				Err(())
-			}
+impl std::fmt::Display for PredicatePrefix {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		match self {
+			Self::None => Ok(()),
+			Self::Whitespace(x) => x.fmt(f),
+			Self::Operator(x) => x.fmt(f),
 		}
 	}
 }
 
-fn tokens_to_string(ts: TokenStream, fragments: &mut Fragments) -> TokenStream {
-	#[cfg(nightly)]
+fn split_predicates(input: syn::Expr) -> Vec<Predicate> {
+	let mut output = Vec::new();
+	let mut remaining = vec![
+		Predicate {
+			prefix: PredicatePrefix::None,
+			expr: input,
+		}
+	];
+	while let Some(outer_predicate) = remaining.pop() {
+		match outer_predicate.expr {
+			syn::Expr::Binary(expr) if matches!(expr.op, syn::BinOp::And(_)) => {
+				let inner_operator = whitespace::operator_with_whitespace(&expr)
+					.unwrap_or(OperatorWithSpacing::new_logical_and());
+				remaining.push(Predicate {
+					prefix: PredicatePrefix::Operator(inner_operator),
+					expr: *expr.right,
+				});
+				remaining.push(Predicate {
+					prefix: outer_predicate.prefix,
+					expr: *expr.left,
+				});
+			},
+			_ => output.push(outer_predicate),
+		}
+	}
+	output
+}
+
+/// Change the initial indentation of the predicates.
+///
+/// All common leading spaces are removed and replaced with `reindent` spaces.
+///
+/// If the first predicate has no glue, and there is any glue with a newline,
+/// new glue is added to put it on a new line with indentation.
+///
+/// Returns `true` if the predicates contain at least one newline.
+fn reindent_predicates(predicates: &mut [Predicate], reindent: usize) -> bool {
+	// Count the total number of newlines and the minimum indentation of all lines.
+	let mut total_newlines = 0;
+	let mut min_indent = None;
+	for predicate in predicates.iter() {
+		total_newlines += predicate.prefix.total_newlines();
+		min_indent = [min_indent, predicate.prefix.min_indent()]
+			.into_iter()
+			.flatten()
+			.min()
+	}
+
+	// No newlines in input, leave it alone.
+	if total_newlines == 0 {
+		return false;
+	}
+
+	let min_indent = min_indent.unwrap_or(0);
+
+	for (i, predicate) in predicates.iter_mut().enumerate() {
+		// If there are newlines in the input, put the first predicate on a new line with indentation too.
+		if i == 0 {
+			if total_newlines > 0 {
+				predicate.prefix = PredicatePrefix::Whitespace(Whitespace::new().with_lines(1).with_spaces(reindent));
+			}
+		// Adjust the indentation of all predicates.
+		} else {
+			predicate.prefix.adjust_indent(reindent as isize - min_indent as isize);
+		}
+	}
+
+	true
+}
+
+fn printable_predicates(crate_name: &syn::Path, predicates: &[Predicate], fragments: &mut Fragments) -> TokenStream {
+	let mut printable_predicates = Vec::new();
+	for predicate in predicates {
+		let prefix = predicate.prefix.to_string();
+		let expression = match &predicate.expr {
+			syn::Expr::Let(expr) => {
+				let pattern = expression_to_string(crate_name, expr.pat.to_token_stream(), fragments);
+				let expression = expression_to_string(crate_name, expr.expr.to_token_stream(), fragments);
+				quote! {
+					(
+						#prefix,
+						#crate_name::__assert2_impl::print::Predicate::Let {
+							pattern: #pattern,
+							expression: #expression,
+						},
+					)
+				}
+			},
+			syn::Expr::Binary(expr) => {
+				let left = expression_to_string(crate_name, expr.left.to_token_stream(), fragments);
+				let operator = tokens_to_string(expr.op.to_token_stream(), fragments);
+				let right = expression_to_string(crate_name, expr.right.to_token_stream(), fragments);
+				quote! {
+					(
+						#prefix,
+						#crate_name::__assert2_impl::print::Predicate::Binary {
+							left: #left,
+							operator: #operator,
+							right: #right,
+						},
+					)
+				}
+			},
+			expr => {
+				let expression = expression_to_string(crate_name, expr.to_token_stream(), fragments);
+				quote! {
+					(
+						#prefix,
+						#crate_name::__assert2_impl::print::Predicate::Bool {
+							expression: #expression,
+						},
+					)
+				}
+			},
+		};
+		printable_predicates.push(expression);
+	}
+	quote!( &[#(#printable_predicates),*] )
+}
+
+fn tokens_to_string(tokens: TokenStream, fragments: &mut Fragments) -> TokenStream {
+	#[cfg(feature = "nightly")]
 	{
 		use syn::spanned::Spanned;
-		find_macro_fragments(ts.clone(), fragments);
-		if let Some(s) = ts.span().unwrap().source_text() {
+		find_macro_fragments(tokens.clone(), fragments);
+		if let Some(s) = tokens.span().unwrap().source_text() {
 			return quote!(#s);
 		}
 	}
 
-	let _ = fragments;
+	#[cfg(not(feature = "nightly"))]
+	{
+		let _ = fragments;
+	}
 
-	let tokens = ts.to_string();
-	quote!(#tokens)
+	#[cfg(feature = "span-locations")]
+	{
+		let mut output = String::new();
+		let mut end = None;
+		let mut streams = vec![(tokens.into_iter(), None::<(char, Whitespace, proc_macro2::Span)>)];
+		while let Some((mut stream, delimiter)) = streams.pop() {
+			let tree = match stream.next() {
+				None => {
+					if let Some((delimiter, whitespace, delim_span)) = delimiter {
+						output.push_str(&whitespace.to_string());
+						output.push(delimiter);
+						end = Some(delim_span);
+					}
+					continue;
+				},
+				Some(tree) => tree,
+			};
+			streams.push((stream, delimiter));
+
+			if let Some(end) = end {
+				match whitespace::whitespace_between(end, tree.span()) {
+					Some(whitespace) => output.push_str(&whitespace.to_string()),
+					None => {
+						print!("Failed to determine whitespace before tree");
+						output.push(' ');
+					},
+				};
+			};
+
+			match tree {
+				proc_macro2::TokenTree::Ident(ident) => {
+					output.push_str(&ident.to_string());
+					end = Some(ident.span());
+				},
+				proc_macro2::TokenTree::Punct(punct) => {
+					output.push(punct.as_char());
+					end = match punct.spacing() {
+						proc_macro2::Spacing::Joint => None,
+						proc_macro2::Spacing::Alone => Some(punct.span()),
+					};
+				},
+				proc_macro2::TokenTree::Literal(literal) => {
+					output.push_str(&literal.to_string());
+					end = Some(literal.span());
+				},
+				proc_macro2::TokenTree::Group(group) => {
+					let (whitespace_open, whitespace_close) = whitespace::whitespace_inside(&group)
+						.unwrap_or((Whitespace::new(), Whitespace::new()));
+					let (open, close) = match group.delimiter() {
+						proc_macro2::Delimiter::None => ('(', ')'),
+						proc_macro2::Delimiter::Parenthesis => ('(', ')'),
+						proc_macro2::Delimiter::Brace => ('{', '}'),
+						proc_macro2::Delimiter::Bracket => ('[', ']'),
+					};
+					output.push(open);
+					output.push_str(&whitespace_open.to_string());
+					let stream = group.stream();
+					if !stream.is_empty() {
+						end = None;
+						streams.push((stream.into_iter(), Some((close, whitespace_close, group.span_close()))));
+					} else {
+						output.push_str(&whitespace_close.to_string());
+						output.push(close);
+						end = Some(group.span_close());
+					}
+				},
+			}
+
+		}
+
+		quote!(#output)
+	}
+
+	#[cfg(not(feature = "span-locations"))]
+	{
+		let tokens = tokens.to_string();
+		quote!(#tokens)
+	}
 }
 
-fn expression_to_string(crate_name: &syn::Path, ts: TokenStream, fragments: &mut Fragments) -> TokenStream {
-	#[cfg(nightly)]
+fn expression_to_string(crate_name: &syn::Path, tokens: TokenStream, fragments: &mut Fragments) -> TokenStream {
+	#[cfg(feature = "nightly")]
 	{
+		let _ = crate_name;
 		use syn::spanned::Spanned;
-		find_macro_fragments(ts.clone(), fragments);
-		if let Some(s) = ts.span().unwrap().source_text() {
+		find_macro_fragments(tokens.clone(), fragments);
+		if let Some(s) = tokens.span().unwrap().source_text() {
 			return quote!(#s);
 		}
 	}
 
-	let _ = fragments;
+	#[cfg(feature = "span-locations")]
+	{
+		let _ = crate_name;
+		tokens_to_string(tokens, fragments)
+	}
 
-	quote!(#crate_name::__assert2_stringify!(#ts))
+	#[cfg(not(feature = "span-locations"))]
+	{
+		let _ = fragments;
+		quote!(#crate_name::__assert2_stringify!(#tokens))
+	}
 }
 
-#[cfg(nightly)]
-fn find_macro_fragments(ts: TokenStream, f: &mut Fragments) {
+#[cfg(feature = "nightly")]
+fn find_macro_fragments(tokens: TokenStream, f: &mut Fragments) {
 	use syn::spanned::Spanned;
 	use proc_macro2::{Delimiter, TokenTree};
 
-	for token in ts {
+	for token in tokens {
 		if let TokenTree::Group(g) = token {
 			if g.delimiter() == Delimiter::None {
 				let name = g.span().unwrap().source_text().unwrap_or_else(|| "???".into());
@@ -210,6 +410,7 @@ fn find_macro_fragments(ts: TokenStream, f: &mut Fragments) {
 		}
 	}
 }
+
 
 struct Fragments {
 	list: Vec<(String, String)>,
@@ -228,36 +429,5 @@ impl quote::ToTokens for Fragments {
 			t.extend(quote!((#name, #expansion),));
 		}
 		tokens.extend(quote!(&[#t]));
-	}
-}
-
-struct Args {
-	crate_name: syn::Path,
-	macro_name: syn::Expr,
-	expr: syn::Expr,
-	format_args: Option<FormatArgs>,
-}
-
-impl syn::parse::Parse for Args {
-	fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-		let crate_name = input.parse()?;
-		let _comma: syn::token::Comma = input.parse()?;
-		let macro_name = input.parse()?;
-		let _comma: syn::token::Comma = input.parse()?;
-		let expr = input.parse()?;
-		let format_args = if input.is_empty() {
-			FormatArgs::new()
-		} else {
-			input.parse::<syn::token::Comma>()?;
-			FormatArgs::parse_terminated(input)?
-		};
-
-		let format_args = Some(format_args).filter(|x| !x.is_empty());
-		Ok(Self {
-			crate_name,
-			macro_name,
-			expr,
-			format_args,
-		})
 	}
 }

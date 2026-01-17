@@ -41,6 +41,7 @@ impl AssertOptions {
 				Err(_) => continue,
 
 				// If we get the write lock it is up to use to initialize the style.
+				// TODO: remove using global state from yansi
 				Ok(mut style) => {
 					let style = style.get_or_insert_with(AssertOptions::from_env);
 					if style.color {

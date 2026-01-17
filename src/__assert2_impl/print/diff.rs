@@ -1,5 +1,4 @@
-use std::fmt::Write;
-use yansi::Paint;
+use super::{DIMMED_STYLE, LEFT_STYLE, RIGHT_STYLE};
 
 /// A line diff between two inputs.
 pub struct MultiLineDiff<'a> {
@@ -17,30 +16,37 @@ impl<'a> MultiLineDiff<'a> {
 	}
 
 	/// Write the left and right input interleaved with eachother, highlighting the differences between the two.
-	pub fn write_interleaved(&self, buffer: &mut String) {
+	pub fn write_interleaved(&self, writer: &mut super::writer::WrappingWriter<'_>) {
 		for diff in &self.line_diffs {
 			match *diff {
 				LineDiff::LeftOnly(left) => {
-					writeln!(buffer, "{}", Paint::cyan(&format_args!("< {left}"))).unwrap();
+					writer.write_styled("< ", LEFT_STYLE);
+					writer.write_styled(left, LEFT_STYLE);
+					writer.flush_line();
 				},
 				LineDiff::RightOnly(right) => {
-					writeln!(buffer, "{}", Paint::yellow(&format_args!("> {right}"))).unwrap();
+					writer.write_styled("> ", RIGHT_STYLE);
+					writer.write_styled(right, RIGHT_STYLE);
+					writer.flush_line();
 				},
 				LineDiff::Different(left, right) => {
 					let diff = SingleLineDiff::new(left, right);
-					write!(buffer, "{} ", "<".paint(diff.left_highlights.normal)).unwrap();
-					diff.write_left(buffer);
-					write!(buffer, "\n{} ", ">".paint(diff.right_highlights.normal)).unwrap();
-					diff.write_right(buffer);
-					buffer.push('\n');
+					writer.write_styled("< ", diff.left_highlights.normal);
+					diff.write_left(writer);
+					writer.flush_line();
+					writer.write_styled("> ", diff.right_highlights.normal);
+					diff.write_right(writer);
+					writer.flush_line();
 				},
 				LineDiff::Equal(text) => {
-					writeln!(buffer, "  {}", text.primary().on_primary().dim()).unwrap();
+					writer.write("  ");
+					writer.write_styled(text, DIMMED_STYLE);
+					writer.flush_line();
 				},
 			}
 		}
 		// Remove last newline.
-		buffer.pop();
+		writer.buffer_mut().pop();
 	}
 }
 
@@ -156,15 +162,15 @@ impl<'a> SingleLineDiff<'a> {
 	/// Write the left line with highlighting.
 	///
 	/// This does not write a line break to the buffer.
-	pub fn write_left(&self, buffer: &mut String) {
-		self.left_highlights.write_highlighted(buffer, self.left);
+	pub fn write_left(&self, writer: &mut super::writer::WrappingWriter) {
+		self.left_highlights.write_highlighted(writer, self.left);
 	}
 
 	/// Write the right line with highlighting.
 	///
 	/// This does not write a line break to the buffer.
-	pub fn write_right(&self, buffer: &mut String) {
-		self.right_highlights.write_highlighted(buffer, self.right);
+	pub fn write_right(&self, writer: &mut super::writer::WrappingWriter) {
+		self.right_highlights.write_highlighted(writer, self.right);
 	}
 
 	/// Split an input line into individual words.
@@ -245,18 +251,17 @@ impl Highlighter {
 	}
 
 	/// Write the data using the highlight ranges.
-	fn write_highlighted(&self, buffer: &mut String, data: &str) {
+	fn write_highlighted(&self, writer: &mut super::writer::WrappingWriter, data: &str) {
 		let not_highlighted = data.len() - self.total_highlighted;
 		if not_highlighted < div_ceil(self.total_highlighted, 2) {
-			write!(buffer, "{}", data.paint(self.normal)).unwrap();
+			writer.write_styled(data, self.normal);
 		} else {
 			for (highlight, range) in self.ranges.iter().cloned() {
-				let piece = if highlight {
-					data[range].paint(self.highlight)
+				if highlight {
+					writer.write_styled(&data[range], self.highlight);
 				} else {
-					data[range].paint(self.normal)
+					writer.write_styled(&data[range], self.normal);
 				};
-				write!(buffer, "{piece}").unwrap();
 			}
 		}
 	}

@@ -1,18 +1,22 @@
 [package]
 name = "assert2-macros"
 description = "procedural macros for assert2"
-version = "0.3.16"
+version = "0.3.17-beta1"
 license = "BSD-2-Clause"
 authors = [
 	"Maarten de Vries <maarten@de-vri.es>",
 	"Mara Bos <m-ou.se@m-ou.se>",
 ]
 
-rust-version = "1.65"
+rust-version = "1.70"
 edition = "2021"
 
 repository = "https://github.com/de-vri-es/assert2-rs"
 documentation = "https://docs.rs/assert2"
+
+[features]
+span-locations = []
+nightly = []
 
 [lib]
 proc-macro = true
@@ -20,7 +24,7 @@ proc-macro = true
 [dependencies]
 proc-macro2 = "1.0.14"
 quote = "1.0.2"
-syn = { version = "2.0.76", features = ["full", "visit", "visit-mut"] }
+syn = { version = "2.0.76", features = ["full", "visit", "visit-mut", "extra-traits"] }
 
 [build-dependencies]
 rustc_version = "0.4.0"

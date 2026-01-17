@@ -16,6 +16,7 @@ fn check_pass() {
 	check!(let Ok(10) = Result::<i32, i32>::Ok(10));
 	check!(let Ok(10) = Result::<i32, i32>::Ok(10), "{}", "rust broke");
 	check!(let Ok(10) = Result::<i32, i32>::Ok(10), "{}", "rust broke",);
+	check!(let Some(x) = Some(10) && x == 10);
 }
 
 #[test]

@@ -1,6 +1,4 @@
 use std::fmt::Debug;
-use yansi::Paint;
-use std::fmt::Write;
 
 mod diff;
 use self::diff::{MultiLineDiff, SingleLineDiff};
@@ -8,107 +6,198 @@ use self::diff::{MultiLineDiff, SingleLineDiff};
 mod options;
 use self::options::{AssertOptions, ExpansionFormat};
 
-pub struct FailedCheck<'a, T> {
+mod writer;
+
+const DEFAULT_STYLE: yansi::Style = yansi::Style::new();
+const ERROR_STYLE: yansi::Style = yansi::Style::new().bright_red().bold();
+const MACRO_STYLE: yansi::Style = yansi::Style::new().magenta();
+const OP_STYLE: yansi::Style = yansi::Style::new().blue().bold();
+const LEFT_STYLE: yansi::Style = yansi::Style::new().cyan();
+const RIGHT_STYLE: yansi::Style = yansi::Style::new().yellow();
+const NOTE_STYLE: yansi::Style = yansi::Style::new().bold();
+const DIMMED_STYLE: yansi::Style = yansi::Style::new().dim();
+
+pub struct FailedCheck<'a> {
 	pub macro_name: &'a str,
 	pub file: &'a str,
 	pub line: u32,
 	pub column: u32,
 	pub custom_msg: Option<std::fmt::Arguments<'a>>,
-	pub expression: T,
+	pub predicates: &'a [(&'a str, Predicate<'a>)],
+	pub multiline: bool,
+	pub failed: usize,
+	pub expansion: Expansion<'a>,
 	pub fragments: &'a [(&'a str, &'a str)],
 }
 
 pub trait CheckExpression {
-	fn write_expression(&self, buffer: &mut  String);
 	fn write_expansion(&self, buffer: &mut String);
 }
 
-pub struct BinaryOp<'a, Left, Right> {
-	pub left: &'a Left,
-	pub right: &'a Right,
-	pub operator: &'a str,
-	pub left_expr: &'a str,
-	pub right_expr: &'a str,
+pub enum Predicate<'a> {
+	Binary {
+		left: &'a str,
+		operator: &'a str,
+		right: &'a str,
+	},
+	Let {
+		pattern: &'a str,
+		expression: &'a str,
+	},
+	Bool {
+		expression: &'a str,
+	},
 }
 
-pub struct BooleanExpr<'a> {
-	pub expression: &'a str,
+pub enum Expansion<'a> {
+	Binary {
+		left: &'a (dyn Debug + 'a),
+		operator: &'a str,
+		right: &'a (dyn Debug + 'a),
+	},
+	Let {
+		expression: &'a (dyn Debug + 'a),
+	},
+	Bool,
 }
 
-pub struct MatchExpr<'a, Value> {
-	pub print_let: bool,
-	pub value: &'a Value,
-	pub pattern: &'a str,
-	pub expression: &'a str,
-}
-
-impl<'a, T: CheckExpression> FailedCheck<'a, T> {
+impl<'a> FailedCheck<'a> {
 	#[rustfmt::skip]
 	pub fn print(&self) {
-		let mut print_message = String::new();
-		writeln!(&mut print_message, "{msg} at {file}:{line}:{column}:",
-			msg    = "Assertion failed".red().bold(),
-			file   = self.file.bold(),
-			line   = self.line,
-			column = self.column,
-		).unwrap();
-		write!(&mut print_message, "  {name}{open} ",
-			name = Paint::magenta(self.macro_name),
-			open = Paint::magenta("!("),
-		).unwrap();
-		self.expression.write_expression(&mut print_message);
-		writeln!(&mut print_message, " {}", Paint::magenta(")")).unwrap();
+		let mut buffer = String::new();
+		let options = options::AssertOptions::get();
+		let (term_width, _term_height) = term_size::dimensions_stderr().unwrap_or((80, 80));
+		let mut writer = writer::WrappingWriter::new(&mut buffer, term_width, options.color);
+		self.print_assertion(&mut writer);
 		if !self.fragments.is_empty() {
-			writeln!(&mut print_message, "with:").unwrap();
+			writer.write("with:\n");
 			for (name, expansion) in self.fragments {
-				writeln!(
-					&mut print_message,
-					"  {} {} {}",
-					Paint::magenta(name), Paint::blue("=").bold(),
-					expansion
-				).unwrap();
+				writer.write("  ");
+				writer.write_styled(name, MACRO_STYLE);
+				writer.write(" ");
+				writer.write_styled("=", OP_STYLE);
+				writer.write(" ");
+				writer.write_styled(expansion, MACRO_STYLE);
+				writer.flush_line();
 			}
 		}
-		self.expression.write_expansion(&mut print_message);
-		writeln!(&mut print_message, ).unwrap();
+		self.expansion.write(&mut writer);
+		writer.flush_line();
 		if let Some(msg) = self.custom_msg {
-			writeln!(&mut print_message, "with message:").unwrap();
-			writeln!(&mut print_message, "  {}", msg.bold()).unwrap();
+			writer.write("with message:\n  ");
+			writer.write_styled(&format!("{msg}"), NOTE_STYLE);
+			writer.flush_line();
 		}
-		writeln!(&mut print_message).unwrap();
+		writer.flush_line();
+		drop(writer);
 
-		eprint!("{print_message}");
+		eprint!("{buffer}");
+	}
+
+	fn print_assertion(&self, writer: &mut writer::WrappingWriter) {
+		writer.write_styled("Assertion failed", ERROR_STYLE);
+		writer.write(" at ");
+		writer.write_styled(self.file, NOTE_STYLE);
+		writer.write(&format!(":{}:{}", self.line, self.column));
+		writer.flush_line();
+		writer.write("  ");
+		writer.write_styled(self.macro_name, MACRO_STYLE);
+		writer.write_styled("!( ", MACRO_STYLE);
+
+		writer.set_indent(2);
+		// Print all the predicates up to and including the failed one.
+		for (i, (glue, predicate)) in self.predicates[..=self.failed].iter().enumerate() {
+			writer.write_styled(glue, DIMMED_STYLE);
+			predicate.write(writer, i == self.failed, self.predicates.len() > 1);
+		}
+
+		if let Some((glue, _next)) = self.predicates.get(self.failed + 1) {
+			writer.write_styled(glue, DIMMED_STYLE);
+			if glue.trim_end() == *glue {
+				writer.write(" ");
+			}
+			writer.write_styled("...", DIMMED_STYLE);
+		}
+		if self.multiline {
+			writer.flush_line();
+		}
+
+		if writer.buffer_mut().ends_with('\n') {
+			writer.write_styled(")", MACRO_STYLE);
+		} else {
+			writer.write_styled(" )", MACRO_STYLE);
+		}
+		writer.set_indent(0);
+		writer.flush_line();
 	}
 }
 
-#[rustfmt::skip]
-impl<Left: Debug, Right: Debug> CheckExpression for BinaryOp<'_, Left, Right> {
-	fn write_expression(&self, print_message: &mut  String) {
-		write!(print_message, "{left} {op} {right}",
-			left  = Paint::cyan(self.left_expr),
-			op    = Paint::blue(self.operator).bold(),
-			right = Paint::yellow(self.right_expr),
-		).unwrap();
+impl Predicate<'_> {
+	fn write(&self, writer: &mut writer::WrappingWriter, failed: bool, undercurl: bool) {
+		fn make_snippet(data: &str, style: yansi::Style, failed: bool, undercurl: bool) -> writer::Snippet<'_> {
+			let mut snippet = writer::Snippet::new(data);
+			if failed {
+				snippet = snippet.style(style);
+				if undercurl {
+					snippet = snippet.undercurl_error();
+				}
+			} else {
+				snippet = snippet.style(DIMMED_STYLE);
+			}
+			snippet
+		}
+
+		match self {
+			Self::Binary { left, operator, right } => {
+				writer.write_snippet(&make_snippet(left, LEFT_STYLE, failed, undercurl));
+				writer.write_snippet(&make_snippet(" ", DEFAULT_STYLE, failed, undercurl));
+				writer.write_snippet(&make_snippet(operator, OP_STYLE, failed, undercurl));
+				writer.write_snippet(&make_snippet(" ", DEFAULT_STYLE, failed, undercurl));
+				writer.write_snippet(&make_snippet(right, RIGHT_STYLE, failed, undercurl));
+			},
+			Self::Let { pattern, expression } => {
+				writer.write_snippet(&make_snippet("let ", OP_STYLE, failed, undercurl));
+				writer.write_snippet(&make_snippet(pattern, LEFT_STYLE, failed, undercurl));
+				writer.write_snippet(&make_snippet(" = ", OP_STYLE, failed, undercurl));
+				writer.write_snippet(&make_snippet(expression, RIGHT_STYLE, failed, undercurl));
+			},
+			Self::Bool { expression } => {
+				writer.write_snippet(&make_snippet(expression, RIGHT_STYLE, failed, undercurl));
+			}
+		}
+	}
+}
+
+impl Expansion<'_> {
+	fn write(&self, writer: &mut writer::WrappingWriter) {
+		match self {
+			Self::Binary { left, operator, right } => Self::write_binary(writer, left, operator, right),
+			Self::Let { expression } => Self::write_let(writer, expression),
+			Self::Bool => Self::write_bool(writer),
+		}
 	}
 
-	fn write_expansion(&self, print_message: &mut String) {
+	fn write_binary(writer: &mut writer::WrappingWriter, left: &dyn Debug, operator: &str, right: &dyn Debug) {
 		let style = AssertOptions::get();
 
 		if !style.expand.force_pretty() {
-			let left = format!("{:?}", self.left);
-			let right = format!("{:?}", self.right);
+			let left = format!("{left:?}");
+			let right = format!("{right:?}");
 			if style.expand.force_compact() || ExpansionFormat::is_compact_good(&[&left, &right]) {
-				writeln!(print_message, "with expansion:").unwrap();
+				writer.write("with expansion:\n");
 				let diff = SingleLineDiff::new(&left, &right);
-				print_message.push_str("  ");
-				diff.write_left(print_message);
-				write!(print_message, " {} ", Paint::blue(self.operator)).unwrap();
-				diff.write_right(print_message);
+				writer.write("  ");
+				diff.write_left(writer);
+				writer.write(" ");
+				writer.write_styled(operator, OP_STYLE);
+				writer.write(" ");
+				diff.write_right(writer);
 				if left == right {
-					if self.operator == "==" {
-						write!(print_message, "\n{}", "Note: Left and right compared as unequal, but the Debug output of left and right is identical!".red()).unwrap();
+					writer.flush_line();
+					if operator == "==" {
+						writer.write_styled("Note: Left and right compared as unequal, but the Debug output of left and right is identical!", ERROR_STYLE);
 					} else {
-						write!(print_message, "\n{}", "Note: Debug output of left and right is identical.".bold()).unwrap();
+						writer.write_styled("Note: Debug output of left and right is identical.", NOTE_STYLE);
 					}
 				}
 				return
@@ -116,47 +205,28 @@ impl<Left: Debug, Right: Debug> CheckExpression for BinaryOp<'_, Left, Right> {
 		}
 
 		// Compact expansion was disabled or not compact enough, so go full-on pretty debug format.
-		let left = format!("{:#?}", self.left);
-		let right = format!("{:#?}", self.right);
-		writeln!(print_message, "with diff:").unwrap();
+		let left = format!("{left:#?}");
+		let right = format!("{right:#?}");
+		writer.write("with diff:\n");
 		MultiLineDiff::new(&left, &right)
-			.write_interleaved(print_message);
-	}
-}
-
-#[rustfmt::skip]
-impl CheckExpression for BooleanExpr<'_> {
-	fn write_expression(&self, print_message: &mut  String) {
-		write!(print_message, "{}", Paint::cyan(self.expression)).unwrap();
+			.write_interleaved(writer);
 	}
 
-	fn write_expansion(&self, print_message: &mut String) {
-		writeln!(print_message, "with expansion:").unwrap();
-		write!(print_message, "  {:?}", false.cyan()).unwrap();
-	}
-}
-
-#[rustfmt::skip]
-impl<Value: Debug> CheckExpression for MatchExpr<'_, Value> {
-	fn write_expression(&self, buffer: &mut String) {
-		if self.print_let {
-			write!(buffer, "{} ", Paint::blue("let").bold()).unwrap();
-		}
-		write!(buffer, "{pat} {eq} {expr}",
-			pat  = Paint::cyan(self.pattern),
-			eq   = Paint::blue("=").bold(),
-			expr = Paint::yellow(self.expression),
-		).unwrap();
+	fn write_bool(writer: &mut writer::WrappingWriter) {
+		writer.write("with expansion:\n");
+		writer.write("  ");
+		writer.write_styled("false", RIGHT_STYLE);
 	}
 
-	fn write_expansion(&self, print_message: &mut String) {
-		writeln!(print_message, "with expansion:").unwrap();
-		let [value] = AssertOptions::get().expand.expand_all([&self.value]);
-		let message = value.yellow().to_string();
-		for line in message.lines() {
-			writeln!(print_message, "  {line}").unwrap();
+	fn write_let(writer: &mut writer::WrappingWriter, expression: &dyn Debug) {
+		writer.write("with expansion:\n");
+		let [value] = AssertOptions::get().expand.expand_all([expression]);
+		for line in value.lines() {
+			writer.write("  ");
+			writer.write_styled(line, RIGHT_STYLE);
+			writer.flush_line();
 		}
 		// Remove last newline.
-		print_message.pop();
+		writer.buffer_mut().pop();
 	}
 }
