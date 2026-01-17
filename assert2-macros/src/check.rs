@@ -13,8 +13,8 @@ pub(crate) fn check(args: Args) -> TokenStream {
 	let context = args.into_context();
 
 	let mut assertions = quote! { ::core::result::Result::Ok::<(), ()>(()) };
-	for (i, (_glue, expr)) in context.predicates.iter().enumerate().rev() {
-		assertions = match expr {
+	for (i, predicate) in context.predicates.iter().enumerate().rev() {
+		assertions = match &predicate.expr {
 			syn::Expr::Binary(expr) => check_binary_op(&context, i, expr, assertions),
 			syn::Expr::Let(expr) => check_let_expr(&context, i, expr, assertions),
 			expr => check_bool_expr(&context, i , expr, assertions),
@@ -48,6 +48,7 @@ pub(crate) fn check_binary_op(
 		macro_name,
 		predicates: _,
 		print_predicates,
+		multiline,
 		fragments,
 		custom_msg,
 	} = context;
@@ -64,6 +65,7 @@ pub(crate) fn check_binary_op(
 					line: line!(),
 					column: column!(),
 					predicates: #print_predicates,
+					multiline: #multiline,
 					failed: #index,
 					expansion: #crate_name::__assert2_impl::print::Expansion::Binary {
 						left: (&left as &dyn ::core::fmt::Debug),
@@ -93,6 +95,7 @@ pub(crate) fn check_bool_expr(
 		macro_name,
 		predicates: _,
 		print_predicates,
+		multiline,
 		fragments,
 		custom_msg,
 	} = context;
@@ -109,6 +112,7 @@ pub(crate) fn check_bool_expr(
 					line: line!(),
 					column: column!(),
 					predicates: #print_predicates,
+					multiline: #multiline,
 					failed: #index,
 					expansion: #crate_name::__assert2_impl::print::Expansion::Bool,
 					fragments: #fragments,
@@ -137,6 +141,7 @@ pub(crate) fn check_let_expr(
 		macro_name,
 		predicates: _,
 		print_predicates,
+		multiline,
 		fragments,
 		custom_msg,
 	} = context;
@@ -155,6 +160,7 @@ pub(crate) fn check_let_expr(
 					line: line!(),
 					column: column!(),
 					predicates: #print_predicates,
+					multiline: #multiline,
 					failed: #index,
 					expansion: #crate_name::__assert2_impl::print::Expansion::Let {
 						expression: &value as &dyn ::core::fmt::Debug,

@@ -24,6 +24,7 @@ pub struct FailedCheck<'a> {
 	pub column: u32,
 	pub custom_msg: Option<std::fmt::Arguments<'a>>,
 	pub predicates: &'a [(&'a str, Predicate<'a>)],
+	pub multiline: bool,
 	pub failed: usize,
 	pub expansion: Expansion<'a>,
 	pub fragments: &'a [(&'a str, &'a str)],
@@ -116,6 +117,9 @@ impl<'a> FailedCheck<'a> {
 				writer.write(" ");
 			}
 			writer.write_styled("...", DIMMED_STYLE);
+		}
+		if self.multiline {
+			writer.flush_line();
 		}
 
 		if writer.buffer_mut().ends_with('\n') {

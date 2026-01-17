@@ -9,8 +9,8 @@ pub(crate) fn assert(args: Args) -> TokenStream {
 	let context = args.into_context();
 
 	let mut output = TokenStream::new();
-	for (i, (_glue, predicate)) in context.predicates.iter().enumerate() {
-		let assertion = match predicate {
+	for (i, predicate) in context.predicates.iter().enumerate() {
+		let assertion = match &predicate.expr {
 			syn::Expr::Let(expr) => assert_let_expr(&context, i, expr),
 			syn::Expr::Binary(expr) => assert_binary_expr(&context, i, expr),
 			expr => assert_bool_expr(&context, i, expr),
@@ -62,6 +62,7 @@ fn assert_let_expr(
 		macro_name,
 		predicates: _,
 		print_predicates,
+		multiline,
 		fragments,
 		custom_msg,
 	} = context;
@@ -79,6 +80,7 @@ fn assert_let_expr(
 				column: column!(),
 				custom_msg: #custom_msg,
 				predicates: #print_predicates,
+				multiline: #multiline,
 				failed: #index,
 				expansion: #crate_name::__assert2_impl::print::Expansion::Let {
 					expression: &value as &dyn ::core::fmt::Debug,

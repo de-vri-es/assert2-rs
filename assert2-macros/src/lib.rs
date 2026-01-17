@@ -8,6 +8,8 @@ extern crate proc_macro;
 use proc_macro2::TokenStream;
 use quote::{ToTokens, quote};
 
+use crate::whitespace::{OperatorWithSpacing, Whitespace};
+
 type FormatArgs = syn::punctuated::Punctuated<syn::Expr, syn::token::Comma>;
 
 mod assert;
@@ -69,7 +71,7 @@ impl syn::parse::Parse for Args {
 impl Args {
 	fn into_context(self) -> Context {
 		let mut predicates = split_predicates(self.expression);
-		reindent_predicates(&mut predicates, 4);
+		let multiline = reindent_predicates(&mut predicates, 4);
 		let mut fragments = Fragments::new();
 		let print_predicates = printable_predicates(&self.crate_name, &predicates, &mut fragments);
 
@@ -83,6 +85,7 @@ impl Args {
 			macro_name: self.macro_name,
 			predicates,
 			print_predicates,
+			multiline,
 			fragments,
 			custom_msg,
 		}
@@ -92,24 +95,83 @@ impl Args {
 struct Context {
 	crate_name: syn::Path,
 	macro_name: syn::Expr,
-	predicates: Vec<(String, syn::Expr)>,
+	predicates: Vec<Predicate>,
 	print_predicates: TokenStream,
+	multiline: bool,
 	fragments: Fragments,
 	custom_msg: TokenStream,
 }
 
-fn split_predicates(input: syn::Expr) -> Vec<(String, syn::Expr)> {
+struct Predicate {
+	prefix: PredicatePrefix,
+	expr: syn::Expr,
+}
+
+enum PredicatePrefix {
+	None,
+	Whitespace(Whitespace),
+	Operator(OperatorWithSpacing),
+}
+
+impl PredicatePrefix {
+	fn total_newlines(&self) -> usize {
+		match self {
+			Self::None => 0,
+			Self::Whitespace(x) => x.lines,
+			Self::Operator(x) => x.total_newlines(),
+		}
+	}
+
+	fn min_indent(&self) -> Option<usize> {
+		match self {
+			Self::None => None,
+			Self::Whitespace(x) => x.indentation(),
+			Self::Operator(x) => x.min_indent(),
+		}
+	}
+
+	fn adjust_indent(&mut self, adjust: isize) {
+		match self {
+			Self::None => (),
+			Self::Whitespace(x) => x.adjust_indent(adjust),
+			Self::Operator(x) => x.adjust_indent(adjust),
+		}
+	}
+}
+
+impl std::fmt::Display for PredicatePrefix {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		match self {
+			Self::None => Ok(()),
+			Self::Whitespace(x) => x.fmt(f),
+			Self::Operator(x) => x.fmt(f),
+		}
+	}
+}
+
+fn split_predicates(input: syn::Expr) -> Vec<Predicate> {
 	let mut output = Vec::new();
-	let mut remaining = vec![(String::new(), input)];
-	while let Some((outside_glue, input)) = remaining.pop() {
-		match input {
+	let mut remaining = vec![
+		Predicate {
+			prefix: PredicatePrefix::None,
+			expr: input,
+		}
+	];
+	while let Some(outer_predicate) = remaining.pop() {
+		match outer_predicate.expr {
 			syn::Expr::Binary(expr) if matches!(expr.op, syn::BinOp::And(_)) => {
-				let inside_glue = whitespace::operator_with_whitespace(&expr)
-					.unwrap_or_else(|| String::from(" && "));
-				remaining.push((inside_glue, *expr.right));
-				remaining.push((outside_glue, *expr.left));
+				let inner_operator = whitespace::operator_with_whitespace(&expr)
+					.unwrap_or(OperatorWithSpacing::new_logical_and());
+				remaining.push(Predicate {
+					prefix: PredicatePrefix::Operator(inner_operator),
+					expr: *expr.right,
+				});
+				remaining.push(Predicate {
+					prefix: outer_predicate.prefix,
+					expr: *expr.left,
+				});
 			},
-			other => output.push((outside_glue, other)),
+			_ => output.push(outer_predicate),
 		}
 	}
 	output
@@ -121,59 +183,53 @@ fn split_predicates(input: syn::Expr) -> Vec<(String, syn::Expr)> {
 ///
 /// If the first predicate has no glue, and there is any glue with a newline,
 /// new glue is added to put it on a new line with indentation.
-fn reindent_predicates(predicates: &mut [(String, syn::Expr)], reindent: usize) {
+///
+/// Returns `true` if the predicates contain atleast one newline.
+fn reindent_predicates(predicates: &mut [Predicate], reindent: usize) -> bool {
+	// Count the total number of newlines and the minimum indentation of all lines.
 	let mut total_newlines = 0;
 	let mut min_indent = None;
-	for (i, (glue, _expr)) in predicates.iter().enumerate() {
-		if i == 0 && glue.is_empty() {
-			continue;
-		}
+	for predicate in predicates.iter() {
+		total_newlines += predicate.prefix.total_newlines();
+		min_indent = [min_indent, predicate.prefix.min_indent()]
+			.into_iter()
+			.flatten()
+			.min()
+	}
 
-		let newlines = glue.chars().take_while(|&c| c == '\n').count();
-		total_newlines += newlines;
-		let indent = glue[newlines..].chars().take_while(|&c| c == ' ').count();
-		match min_indent {
-			None => min_indent = Some(indent),
-			Some(old) => min_indent = Some(old.min(indent)),
-		}
+	// No newlines in input, leave it alone.
+	if total_newlines == 0 {
+		return false;
 	}
 
 	let min_indent = min_indent.unwrap_or(0);
 
-	for (i, (glue, _expr)) in predicates.iter_mut().enumerate() {
-		let newlines = glue.chars().take_while(|&c| c == '\n').count();
-		let old_indent = glue[newlines..].chars().take_while(|&c| c == ' ').count();
-
-		if i == 0 && glue.is_empty() && total_newlines > 0 {
-			glue.push('\n');
-			for _ in 0..reindent {
-				glue.push(' ');
+	for (i, predicate) in predicates.iter_mut().enumerate() {
+		// If there are newlines in the input, put the first predicate on a new line with indentation too.
+		if i == 0 {
+			if total_newlines > 0 {
+				predicate.prefix = PredicatePrefix::Whitespace(Whitespace::new().with_lines(1).with_spaces(reindent));
 			}
-			continue;
+		// Adjust the indentation of all predicates.
+		} else {
+			predicate.prefix.adjust_indent(reindent as isize - min_indent as isize);
 		}
-
-		let mut new_glue = String::with_capacity(glue.len() - min_indent + reindent);
-		for _ in 0..newlines {
-			new_glue.push('\n');
-		}
-		for _ in 0..(old_indent - min_indent) + reindent {
-			new_glue.push(' ');
-		}
-		new_glue.push_str(&glue[newlines + old_indent..]);
-		*glue = new_glue;
 	}
+
+	true
 }
 
-fn printable_predicates(crate_name: &syn::Path, predicates: &[(String, syn::Expr)], fragments: &mut Fragments) -> TokenStream {
+fn printable_predicates(crate_name: &syn::Path, predicates: &[Predicate], fragments: &mut Fragments) -> TokenStream {
 	let mut printable_predicates = Vec::new();
-	for (glue, predicate) in predicates {
-		let expresion = match predicate {
+	for predicate in predicates {
+		let prefix = predicate.prefix.to_string();
+		let expresion = match &predicate.expr {
 			syn::Expr::Let(expr) => {
 				let pattern = expression_to_string(crate_name, expr.pat.to_token_stream(), fragments);
 				let expression = expression_to_string(crate_name, expr.expr.to_token_stream(), fragments);
 				quote! {
 					(
-						#glue,
+						#prefix,
 						#crate_name::__assert2_impl::print::Predicate::Let {
 							pattern: #pattern,
 							expression: #expression,
@@ -187,7 +243,7 @@ fn printable_predicates(crate_name: &syn::Path, predicates: &[(String, syn::Expr
 				let right = expression_to_string(crate_name, expr.right.to_token_stream(), fragments);
 				quote! {
 					(
-						#glue,
+						#prefix,
 						#crate_name::__assert2_impl::print::Predicate::Binary {
 							left: #left,
 							operator: #operator,
@@ -200,7 +256,7 @@ fn printable_predicates(crate_name: &syn::Path, predicates: &[(String, syn::Expr
 				let expression = expression_to_string(crate_name, expr.to_token_stream(), fragments);
 				quote! {
 					(
-						#glue,
+						#prefix,
 						#crate_name::__assert2_impl::print::Predicate::Bool {
 							expression: #expression,
 						},
@@ -232,12 +288,12 @@ fn tokens_to_string(tokens: TokenStream, fragments: &mut Fragments) -> TokenStre
 	{
 		let mut output = String::new();
 		let mut end = None;
-		let mut streams = vec![(tokens.into_iter(), None::<(char, String, proc_macro2::Span)>)];
+		let mut streams = vec![(tokens.into_iter(), None::<(char, Whitespace, proc_macro2::Span)>)];
 		while let Some((mut stream, delimiter)) = streams.pop() {
 			let tree = match stream.next() {
 				None => {
 					if let Some((delimiter, whitespace, delim_span)) = delimiter {
-						output.push_str(&whitespace);
+						output.push_str(&whitespace.to_string());
 						output.push(delimiter);
 						end = Some(delim_span);
 					}
@@ -249,7 +305,7 @@ fn tokens_to_string(tokens: TokenStream, fragments: &mut Fragments) -> TokenStre
 
 			if let Some(end) = end {
 				match whitespace::whitespace_between(end, tree.span()) {
-					Some(whitespace) => output.push_str(&whitespace),
+					Some(whitespace) => output.push_str(&whitespace.to_string()),
 					None => {
 						print!("Failed to determine whitespace before tree");
 						output.push(' ');
@@ -275,7 +331,7 @@ fn tokens_to_string(tokens: TokenStream, fragments: &mut Fragments) -> TokenStre
 				},
 				proc_macro2::TokenTree::Group(group) => {
 					let (whitespace_open, whitespace_close) = whitespace::whitespace_inside(&group)
-						.unwrap_or((String::new(), String::new()));
+						.unwrap_or((Whitespace::new(), Whitespace::new()));
 					let (open, close) = match group.delimiter() {
 						proc_macro2::Delimiter::None => ('(', ')'),
 						proc_macro2::Delimiter::Parenthesis => ('(', ')'),
@@ -283,13 +339,13 @@ fn tokens_to_string(tokens: TokenStream, fragments: &mut Fragments) -> TokenStre
 						proc_macro2::Delimiter::Bracket => ('[', ']'),
 					};
 					output.push(open);
-					output.push_str(&whitespace_open);
+					output.push_str(&whitespace_open.to_string());
 					let stream = group.stream();
 					if !stream.is_empty() {
 						end = None;
 						streams.push((stream.into_iter(), Some((close, whitespace_close, group.span_close()))));
 					} else {
-						output.push_str(&whitespace_close);
+						output.push_str(&whitespace_close.to_string());
 						output.push(close);
 						end = Some(group.span_close());
 					}
