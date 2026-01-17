@@ -11,7 +11,7 @@
 //!   * Use [let chains](https://blog.rust-lang.org/2025/06/26/Rust-1.88.0/#let-chains) (even with compilers older than Rust 1.88).
 //!   * See which part of a `&&` chain failed.
 //!   * Re-use captured variables from pattern matches in later code with `assert!(...)`.
-//!   * Perform multiple check before panicking with `check!(...)`.
+//!   * Perform multiple checks before panicking with `check!(...)`.
 //!   * Colored failure messages!
 //!   * Highlighted diffs between the Debug form of the expected and actual values!
 //!
@@ -257,7 +257,7 @@ pub mod __assert2_impl;
 /// Use [`check!`](macro.check.html) if you still want further checks to be executed.
 ///
 /// All placeholders in `let` patterns are made available in the calling scope.
-/// Additionaly, the macro supports `let` chains (regardless of your compiler version):
+/// Additionally, the macro supports `let` chains (regardless of your compiler version):
 /// ```
 /// # use assert2::assert;
 /// assert!(

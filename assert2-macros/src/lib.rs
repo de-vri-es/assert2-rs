@@ -184,7 +184,7 @@ fn split_predicates(input: syn::Expr) -> Vec<Predicate> {
 /// If the first predicate has no glue, and there is any glue with a newline,
 /// new glue is added to put it on a new line with indentation.
 ///
-/// Returns `true` if the predicates contain atleast one newline.
+/// Returns `true` if the predicates contain at least one newline.
 fn reindent_predicates(predicates: &mut [Predicate], reindent: usize) -> bool {
 	// Count the total number of newlines and the minimum indentation of all lines.
 	let mut total_newlines = 0;

@@ -106,7 +106,7 @@ impl<'a> WrappingWriter<'a> {
 			self.current_line_width += self.indent;
 		}
 
-		// Add stryling prefix.
+		// Add styling prefix.
 		if self.styling_enabled {
 			self.buffer.push_str(&style.prefix());
 		}

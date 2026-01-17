@@ -31,7 +31,7 @@ impl OperatorWithSpacing {
 		}
 	}
 
-	/// Make a now logical AND operator (`&&`) with one space on each side.
+	/// Make a new logical AND operator (`&&`) with one space on each side.
 	pub fn new_logical_and() -> Self {
 		Self::new(syn::BinOp::And(syn::token::AndAnd(Span::call_site())))
 	}
@@ -80,7 +80,7 @@ pub fn whitespace_inside(group: &proc_macro2::Group) -> Option<(Whitespace, Whit
 	}
 
 	#[cfg(feature = "span-locations")]
-	#[allow(clippy::incompatible_msrv)] // code enabled only for comptabile compilers
+	#[allow(clippy::incompatible_msrv)] // code enabled only for compatible compilers
 	{
 		let group_start = group.span().unwrap().start();
 		let group_end = group.span().unwrap().end();
@@ -143,7 +143,7 @@ pub fn whitespace_between(a: Span, b: Span) -> Option<Whitespace> {
 		None
 	}
 	#[cfg(feature = "span-locations")]
-	#[allow(clippy::incompatible_msrv)] // code enabled only for comptabile compilers
+	#[allow(clippy::incompatible_msrv)] // code enabled only for compatible compilers
 	{
 		let span_a = a.unwrap().end();
 		let span_b = b.unwrap().start();
