@@ -2,20 +2,20 @@
 
 All-purpose [`assert!(...)`](macro.assert.html) and [`check!(...)`](macro.check.html) macros, inspired by [Catch2](https://github.com/catchorg/Catch2).
 There is also a [`debug_assert!(...)`](macro.debug_assert.html) macro that is disabled on optimized builds by default.
-As cherry on top there is a [`let_assert!(...)`](macro.let_assert.html) macro that lets you test a pattern while capturing parts of it.
 
 ## Why these macros?
 
 These macros offer some benefits over the assertions from the standard library:
-  * The macros parse your expression to detect comparisons and adjust the error message accordingly.
-    No more `assert_eq!(a, b)` or `assert_ne!(c, d)`, just write `assert!(1 + 1 == 2)`, or even `assert!(1 + 1 > 1)`!
-  * You can test for pattern matches: `assert!(let Err(_) = File::open("/non/existing/file"))`.
-  * You can capture parts of the pattern for further testing by using the `let_assert!(...)` macro.
-  * The `check` macro can be used to perform multiple checks before panicking.
-  * The macros provide more information than the standard `std::assert!()` when the assertion fails.
-  * Colored failure messages with diffs!
+  * Use comparison operators inside the assertion instead of specialized macros: `assert!(1 + 1 == 2)`.
+  * Test pattern matches: `assert!(let Err(e) = File::open("/non/existing/file"))`.
+  * Use [let chains](https://blog.rust-lang.org/2025/06/26/Rust-1.88.0/#let-chains) (even with compilers older than Rust 1.88).
+  * See which part of a `&&` chain failed.
+  * Re-use captured variables from pattern matches in later code with `assert!(...)`.
+  * Perform multiple checks before panicking with `check!(...)`.
+  * Colored failure messages!
+  * Highlighted diffs between the Debug form of the expected and actual values!
 
-The macros also accept additional arguments for a custom message, so it is fully compatible with `std::assert`.
+The macros also accept additional arguments for a custom message, so it is fully compatible with `std::assert!(...)`.
 This means that you can import the macro as a drop in replacement:
 ```rust
 use assert2::assert;
@@ -56,8 +56,19 @@ check!(let Ok(_) = File::open("/non/existing/file"));
 ----------
 
 ```rust
-let_assert!(Err(e) = File::open("/non/existing/file"));
+assert!(let Err(e) = File::open("/non/existing/file"));
 check!(e.kind() == ErrorKind::PermissionDenied);
+```
+
+![Output](https://github.com/de-vri-es/assert2-rs/blob/54ee3141e9b23a0d9038697d34f29f25ef7fe810/let-assert.png?raw=true)
+
+----------
+
+```rust
+check!(
+  let Err(e) = File::open("/non/existing/file")
+  && e.kind() == ErrorKind::PermissionDenied
+);
 ```
 
 ![Output](https://github.com/de-vri-es/assert2-rs/blob/54ee3141e9b23a0d9038697d34f29f25ef7fe810/let-assert.png?raw=true)
@@ -79,22 +90,33 @@ If available, the crate uses the `proc_macro_span` feature to get the original s
 On stable and beta, it falls back to stringifying the expression.
 This makes the output a bit more readable on nightly.
 
-## The `let_assert!()` macro
-You can also use the [`let_assert!(...)`](macro.let_assert.html).
-It is very similar to `assert!(let ...)`,
-but all placeholders will be made available as variables in the calling scope.
-
+## Capturing variables
+When you use the [`assert!(...)`](macro.assert.html) macro, any placeholders in `let` patterns are captured.
+They will be made available in the calling scope as if they were a regular `let` binding.
 This allows you to run additional checks on the captured variables.
 
 For example:
 
 ```rust
-let_assert!(Ok(foo) = Foo::try_new("bar"));
+assert!(let Ok(foo) = Foo::try_new("bar"));
 check!(foo.name() == "bar");
 
-let_assert!(Err(Error::InvalidName(e)) = Foo::try_new("bogus name"));
+assert!(let Err(Error::InvalidName(e)) = Foo::try_new("bogus name"));
 check!(e.name() == "bogus name");
 check!(e.to_string() == "invalid name: bogus name");
+```
+
+The [`check!(...)`](macro.check.html) can not do this, as code following the macro can still be executed, even if the check failed.
+However, you can run multiple checks inside the same macro call using `let` chains:
+
+```rust
+check!(let Ok(foo) = Foo::try_new("bar") && foo.name() == "bar");
+
+check!(
+    let Err(Error::InvalidName(e)) = Foo::try_new("bogus name")
+    && e.name() == "bogus name"
+    && e.to_string() == "invalid name: bogus name"
+);
 ```
 
 ## Controlling the output format.
