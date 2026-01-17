@@ -223,7 +223,7 @@ fn printable_predicates(crate_name: &syn::Path, predicates: &[Predicate], fragme
 	let mut printable_predicates = Vec::new();
 	for predicate in predicates {
 		let prefix = predicate.prefix.to_string();
-		let expresion = match &predicate.expr {
+		let expression = match &predicate.expr {
 			syn::Expr::Let(expr) => {
 				let pattern = expression_to_string(crate_name, expr.pat.to_token_stream(), fragments);
 				let expression = expression_to_string(crate_name, expr.expr.to_token_stream(), fragments);
@@ -264,7 +264,7 @@ fn printable_predicates(crate_name: &syn::Path, predicates: &[Predicate], fragme
 				}
 			},
 		};
-		printable_predicates.push(expresion);
+		printable_predicates.push(expression);
 	}
 	quote!( &[#(#printable_predicates),*] )
 }
