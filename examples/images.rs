@@ -1,11 +1,10 @@
-#![allow(clippy::nonminimal_bool)]
-
 use assert2::check;
 use assert2::assert;
 use std::fs::File;
 use std::io::ErrorKind;
 
-fn main() {
+#[allow(clippy::nonminimal_bool)]
+pub fn main() {
 	check!(6 + 1 <= 2 * 3);
 	check!(5 < 6);
 	check!(true && false);

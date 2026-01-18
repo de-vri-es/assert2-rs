@@ -34,7 +34,6 @@
 //!
 //! ```should_panic
 //! # use assert2::check;
-//! # use assert2::let_assert;
 //! # use std::fs::File;
 //! # use std::io::ErrorKind;
 //! # #[derive(Debug, Eq, PartialEq)]
@@ -97,7 +96,6 @@
 //!
 //! ```should_panic
 //! # use assert2::check;
-//! # use assert2::let_assert;
 //! # use std::fs::File;
 //! # use std::io::ErrorKind;
 //! check!(
@@ -179,7 +177,6 @@
 //!
 //! ```
 //! # fn main() {
-//! # use assert2::let_assert;
 //! # use assert2::check;
 //! # struct Foo {
 //! #  name: &'static str,
@@ -355,6 +352,7 @@ macro_rules! debug_assert {
 ///
 /// For example:
 /// ```
+/// # #![allow(deprecated)]
 /// # use assert2::let_assert;
 /// # use assert2::check;
 /// # fn main() {

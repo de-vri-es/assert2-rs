@@ -9,7 +9,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        rust: [stable, nightly, 1.70.0]
+        rust: [stable, nightly, 1.71.0]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout code

@@ -1,4 +1,5 @@
-pub fn main() {
+fn main() {
+	reproducible_panic::install();
 	assert2::assert!(
 		let Some(x) = Some(3 + 2)
 		&& x == 7
