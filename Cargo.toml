@@ -5,7 +5,7 @@ version = "0.3.17-beta1"
 license = "BSD-2-Clause"
 authors = ["Maarten de Vries <maarten@de-vri.es>", "Mara Bos <m-ou.se@m-ou.se>"]
 
-rust-version = "1.70"
+rust-version = "1.71"
 edition = "2021"
 
 repository = "https://github.com/de-vri-es/assert2-rs"
@@ -20,6 +20,10 @@ yansi = "1.0.1"
 diff = "0.1.13"
 unicode-width = "0.2.1"
 term_size = "0.3.2"
+
+[dev-dependencies]
+tempfile = "3.24.0"
+reproducible-panic = "0.1.2"
 
 [workspace]
 resolver = "2"
