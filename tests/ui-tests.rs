@@ -252,19 +252,51 @@ fn print_output_diff(stream_name: &str, expected: &[u8], actual: &[u8]) {
 			// Show first few differences
 			let mut diff_count = 0;
 			let max_diffs = 5;
-			for (i, (exp_line, act_line)) in expected_lines.iter().zip(actual_lines.iter()).enumerate() {
-				if exp_line != act_line && diff_count < max_diffs {
+			let min_len = expected_lines.len().min(actual_lines.len());
+			
+			// Compare lines that exist in both
+			for i in 0..min_len {
+				if expected_lines[i] != actual_lines[i] && diff_count < max_diffs {
 					eprintln!("\n{} {}:",
 						yansi::Paint::yellow("Difference at line").bold(),
 						i + 1
 					);
-					eprintln!("  - {}", yansi::Paint::red(exp_line));
-					eprintln!("  + {}", yansi::Paint::green(act_line));
+					eprintln!("  - {}", yansi::Paint::red(expected_lines[i]));
+					eprintln!("  + {}", yansi::Paint::green(actual_lines[i]));
 					diff_count += 1;
 				}
 			}
 			
-			if diff_count == max_diffs {
+			// Show extra lines from expected output
+			if expected_lines.len() > actual_lines.len() && diff_count < max_diffs {
+				for i in min_len..expected_lines.len().min(min_len + max_diffs - diff_count) {
+					eprintln!("\n{} {} (only in expected):",
+						yansi::Paint::yellow("Line").bold(),
+						i + 1
+					);
+					eprintln!("  - {}", yansi::Paint::red(expected_lines[i]));
+					diff_count += 1;
+				}
+			}
+			
+			// Show extra lines from actual output
+			if actual_lines.len() > expected_lines.len() && diff_count < max_diffs {
+				for i in min_len..actual_lines.len().min(min_len + max_diffs - diff_count) {
+					eprintln!("\n{} {} (only in actual):",
+						yansi::Paint::yellow("Line").bold(),
+						i + 1
+					);
+					eprintln!("  + {}", yansi::Paint::green(actual_lines[i]));
+					diff_count += 1;
+				}
+			}
+			
+			// Check if there are more differences we didn't show
+			let total_different_lines = (0..min_len).filter(|&i| expected_lines[i] != actual_lines[i]).count()
+				+ expected_lines.len().saturating_sub(min_len)
+				+ actual_lines.len().saturating_sub(min_len);
+			
+			if total_different_lines > diff_count {
 				eprintln!("\n{}", yansi::Paint::dim("(additional differences omitted)"));
 			}
 		}
