@@ -21,14 +21,14 @@ fn ui_tests() {
 
 fn do_main() -> Result<(), ()> {
 	let cases = std::fs::read_dir(Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/ui-tests"))
-		.map_err(|e| error!("Failed to open directory \"cases\": {e}"))?;
+		.map_err(|e| error!("Failed to open directory \"tests/ui-tests\": {e}"))?;
 
 	let mut failed = 0;
 	for entry in cases {
-		let entry = entry.map_err(|e| error!("Failed to read dir entry from \"cases\": {e}"))?;
+		let entry = entry.map_err(|e| error!("Failed to read dir entry from \"tests/ui-tests\": {e}"))?;
 		let file_name = entry.file_name();
 		let file_type = entry.file_type()
-			.map_err(|e| error!("Failed to stat \"cases/{}\": {e}", entry.file_name().to_string_lossy()))?;
+			.map_err(|e| error!("Failed to stat \"tests/ui-tests/{}\": {e}", entry.file_name().to_string_lossy()))?;
 		if file_type.is_dir() {
 			let name = file_name
 				.to_str()
@@ -106,8 +106,10 @@ fn run_test(name: &str, path: &Path) -> Result<bool, ()> {
 
 	let stdout_path = path.join("expected.stdout");
 	let stderr_path = path.join("expected.stderr");
+	let exit_code_path = path.join("expected-exit-code");
 	let expected_stdout = read_file(&stdout_path)?;
 	let expected_stderr = read_file(&stderr_path)?;
+	let expected_exit_code = read_exit_code(&exit_code_path)?;
 
 	if let Some(expected_stdout) = &expected_stdout {
 		if !compare_output(expected_stdout, &output.stdout) {
@@ -125,10 +127,24 @@ fn run_test(name: &str, path: &Path) -> Result<bool, ()> {
 		write_file(&stderr_path, &output.stderr)?;
 	}
 
-	if output.status.code() == Some(0) {
-		fail("program did not panic");
-	} else if output.status.code().is_none() {
-		fail(&format!("abnormal test exit: {}", output.status));
+	// Validate exit code
+	match (output.status.code(), expected_exit_code) {
+		// If expected exit code is specified, check against it
+		(Some(actual), Some(expected)) => {
+			if actual != expected {
+				fail(&format!("exit code mismatch: expected {expected}, got {actual}"));
+			}
+		},
+		// If no expected exit code is specified, default to expecting non-zero (panic)
+		(Some(0), None) => {
+			fail("program did not panic");
+		},
+		// Handle abnormal termination (signal, etc.)
+		(None, _) => {
+			fail(&format!("abnormal test exit: {}", output.status));
+		},
+		// Non-zero exit without expected exit code is OK (default panic behavior)
+		(Some(_), None) => {},
 	}
 
 	if !failed {
@@ -166,6 +182,19 @@ fn read_file(path: &Path) -> Result<Option<Vec<u8>>, ()> {
 	std::io::Read::read_to_end(&mut file, &mut buffer)
 		.map_err(|e| error!("Failed to read from {}: {e}", path.display()))?;
 	Ok(Some(buffer))
+}
+
+fn read_exit_code(path: &Path) -> Result<Option<i32>, ()> {
+	match read_file(path)? {
+		None => Ok(None),
+		Some(data) => {
+			let content = std::str::from_utf8(&data)
+				.map_err(|e| error!("Failed to parse {} as UTF-8: {e}", path.display()))?;
+			let code = content.trim().parse::<i32>()
+				.map_err(|e| error!("Failed to parse exit code from {}: {e}", path.display()))?;
+			Ok(Some(code))
+		}
+	}
 }
 
 fn write_file(path: &Path, data: &[u8]) -> Result<(), ()> {
