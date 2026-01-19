@@ -275,7 +275,8 @@ fn print_output_diff(stream_name: &str, expected: &[u8], actual: &[u8]) {
 			let extra_expected = expected_lines.len().saturating_sub(min_len);
 			total_different_lines += extra_expected;
 			if extra_expected > 0 && diff_count < max_diffs {
-				for i in min_len..expected_lines.len().min(min_len + max_diffs - diff_count) {
+				let end_index = expected_lines.len().min(min_len + max_diffs - diff_count);
+				for i in min_len..end_index {
 					eprintln!("\n{} {} (only in expected):",
 						yansi::Paint::yellow("Line").bold(),
 						i + 1
@@ -289,7 +290,8 @@ fn print_output_diff(stream_name: &str, expected: &[u8], actual: &[u8]) {
 			let extra_actual = actual_lines.len().saturating_sub(min_len);
 			total_different_lines += extra_actual;
 			if extra_actual > 0 && diff_count < max_diffs {
-				for i in min_len..actual_lines.len().min(min_len + max_diffs - diff_count) {
+				let end_index = actual_lines.len().min(min_len + max_diffs - diff_count);
+				for i in min_len..end_index {
 					eprintln!("\n{} {} (only in actual):",
 						yansi::Paint::yellow("Line").bold(),
 						i + 1
