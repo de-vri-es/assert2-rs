@@ -90,7 +90,7 @@ fn run_test(name: &str, path: &Path) -> Result<bool, ()> {
 		return Err(());
 	}
 
-	let mut output = std::process::Command::new("cargo")
+	let output = std::process::Command::new("cargo")
 		.current_dir(working_dir.path())
 		.args(["run", "--quiet"])
 		.arg("--target-dir")
@@ -101,8 +101,6 @@ fn run_test(name: &str, path: &Path) -> Result<bool, ()> {
 			fail("spawn failed");
 			error!("cargo run: failed to spawn process: {e}");
 		})?;
-	adjust_output(&mut output.stdout);
-	adjust_output(&mut output.stderr);
 
 	let stdout_path = path.join("expected.stdout");
 	let stderr_path = path.join("expected.stderr");
@@ -372,10 +370,4 @@ fn write_manifest<W: std::io::Write>(mut write: W, name: &str, assert2_path: &st
 	writeln!(&mut write, "[workspace]")?;
 
 	Ok(())
-}
-
-fn adjust_output(output: &mut Vec<u8>) {
-	let _ = &output;
-	#[cfg(windows)]
-	output.retain(|&b| b != b'\r');
 }
