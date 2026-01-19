@@ -238,36 +238,36 @@ fn escape_non_printable(s: &str) -> String {
 fn print_output_diff(stream_name: &str, expected: &[u8], actual: &[u8]) {
 	use std::io::Write;
 	let mut stderr = std::io::stderr().lock();
-	
-	writeln!(&mut stderr, "\n{}: Expected {} differs from actual {}", 
+
+	writeln!(&mut stderr, "\n{}: Expected {} differs from actual {}",
 		yansi::Paint::yellow("Details").bold().bright(),
 		stream_name,
 		stream_name
 	).ok();
-	
+
 	// Try to convert to strings for better readability
 	match (std::str::from_utf8(expected), std::str::from_utf8(actual)) {
 		(Ok(expected_str), Ok(actual_str)) => {
 			writeln!(&mut stderr, "\n{}:", yansi::Paint::cyan("Expected").bold()).ok();
-			for line in expected_str.lines() {
+			for line in expected_str.split('\n') {
 				writeln!(&mut stderr, "  {}", escape_non_printable(line)).ok();
 			}
 			if expected_str.is_empty() {
 				writeln!(&mut stderr, "  {}", yansi::Paint::dim("(empty)")).ok();
 			}
-			
+
 			writeln!(&mut stderr, "\n{}:", yansi::Paint::cyan("Actual").bold()).ok();
-			for line in actual_str.lines() {
+			for line in actual_str.split('\n') {
 				writeln!(&mut stderr, "  {}", escape_non_printable(line)).ok();
 			}
 			if actual_str.is_empty() {
 				writeln!(&mut stderr, "  {}", yansi::Paint::dim("(empty)")).ok();
 			}
-			
+
 			// Show line-by-line diff
-			let expected_lines: Vec<_> = expected_str.lines().collect();
-			let actual_lines: Vec<_> = actual_str.lines().collect();
-			
+			let expected_lines: Vec<_> = expected_str.split('\n').collect();
+			let actual_lines: Vec<_> = actual_str.split('\n').collect();
+
 			if expected_lines.len() != actual_lines.len() {
 				writeln!(&mut stderr, "\n{}: Expected {} lines, got {} lines",
 					yansi::Paint::yellow("Line count").bold(),
@@ -275,13 +275,13 @@ fn print_output_diff(stream_name: &str, expected: &[u8], actual: &[u8]) {
 					actual_lines.len()
 				).ok();
 			}
-			
+
 			// Show first few differences
 			let mut diff_count = 0;
 			let max_diffs = 5;
 			let min_len = expected_lines.len().min(actual_lines.len());
 			let mut total_different_lines = 0;
-			
+
 			// Compare lines that exist in both
 			for i in 0..min_len {
 				if expected_lines[i] != actual_lines[i] {
@@ -299,7 +299,7 @@ fn print_output_diff(stream_name: &str, expected: &[u8], actual: &[u8]) {
 					}
 				}
 			}
-			
+
 			// Count and show extra lines from expected output
 			let extra_expected = expected_lines.len().saturating_sub(min_len);
 			total_different_lines += extra_expected;
@@ -315,7 +315,7 @@ fn print_output_diff(stream_name: &str, expected: &[u8], actual: &[u8]) {
 					diff_count += 1;
 				}
 			}
-			
+
 			// Count and show extra lines from actual output
 			let extra_actual = actual_lines.len().saturating_sub(min_len);
 			total_different_lines += extra_actual;
@@ -331,7 +331,7 @@ fn print_output_diff(stream_name: &str, expected: &[u8], actual: &[u8]) {
 					diff_count += 1;
 				}
 			}
-			
+
 			// Show message if there are more differences we didn't show
 			if total_different_lines > diff_count {
 				writeln!(&mut stderr, "\n{}", yansi::Paint::dim("(additional differences omitted)")).ok();
@@ -345,7 +345,7 @@ fn print_output_diff(stream_name: &str, expected: &[u8], actual: &[u8]) {
 			} else {
 				writeln!(&mut stderr, "  {} bytes: {:?}...", expected.len(), &expected[..50]).ok();
 			}
-			
+
 			writeln!(&mut stderr, "\n{}:", yansi::Paint::cyan("Actual (bytes)").bold()).ok();
 			if actual.len() <= 50 {
 				writeln!(&mut stderr, "  {} bytes: {:?}", actual.len(), actual).ok();
