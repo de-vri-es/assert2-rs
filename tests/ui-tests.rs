@@ -220,9 +220,11 @@ fn escape_non_printable(s: &str) -> String {
 			'\r' => result.push_str("\\r"),
 			'\t' => result.push_str("\\t"),
 			'\0' => result.push_str("\\0"),
-			c if c.is_control() || (c as u32) > 0x7E => {
-				// Escape other control characters and non-ASCII printable characters
-				for byte in c.to_string().as_bytes() {
+			c if c.is_control() => {
+				// Escape control characters as hex bytes
+				let mut buf = [0u8; 4];
+				let bytes = c.encode_utf8(&mut buf).as_bytes();
+				for &byte in bytes {
 					result.push_str(&format!("\\x{:02x}", byte));
 				}
 			}
