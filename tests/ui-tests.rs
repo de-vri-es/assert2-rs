@@ -114,6 +114,7 @@ fn run_test(name: &str, path: &Path) -> Result<bool, ()> {
 	if let Some(expected_stdout) = &expected_stdout {
 		if !compare_output(expected_stdout, &output.stdout) {
 			fail("stdout does not match");
+			print_output_diff("stdout", expected_stdout, &output.stdout);
 		}
 	} else {
 		write_file(&stdout_path, &output.stdout)?;
@@ -122,6 +123,7 @@ fn run_test(name: &str, path: &Path) -> Result<bool, ()> {
 	if let Some(expected_stderr) = &expected_stderr {
 		if !compare_output(expected_stderr, &output.stderr) {
 			fail("stderr does not match");
+			print_output_diff("stderr", expected_stderr, &output.stderr);
 		}
 	} else {
 		write_file(&stderr_path, &output.stderr)?;
@@ -207,6 +209,87 @@ fn write_file(path: &Path, data: &[u8]) -> Result<(), ()> {
 
 fn compare_output(expected: &[u8], actual: &[u8]) -> bool {
 	expected == actual
+}
+
+fn print_output_diff(stream_name: &str, expected: &[u8], actual: &[u8]) {
+	eprintln!("\n{}: Expected {} differs from actual {}", 
+		yansi::Paint::yellow("Details").bold().bright(),
+		stream_name,
+		stream_name
+	);
+	
+	// Try to convert to strings for better readability
+	match (std::str::from_utf8(expected), std::str::from_utf8(actual)) {
+		(Ok(expected_str), Ok(actual_str)) => {
+			eprintln!("\n{}:", yansi::Paint::cyan("Expected").bold());
+			for line in expected_str.lines() {
+				eprintln!("  {}", line);
+			}
+			if expected_str.is_empty() {
+				eprintln!("  {}", yansi::Paint::dim("(empty)"));
+			}
+			
+			eprintln!("\n{}:", yansi::Paint::cyan("Actual").bold());
+			for line in actual_str.lines() {
+				eprintln!("  {}", line);
+			}
+			if actual_str.is_empty() {
+				eprintln!("  {}", yansi::Paint::dim("(empty)"));
+			}
+			
+			// Show line-by-line diff
+			let expected_lines: Vec<_> = expected_str.lines().collect();
+			let actual_lines: Vec<_> = actual_str.lines().collect();
+			
+			if expected_lines.len() != actual_lines.len() {
+				eprintln!("\n{}: Expected {} lines, got {} lines",
+					yansi::Paint::yellow("Line count").bold(),
+					expected_lines.len(),
+					actual_lines.len()
+				);
+			}
+			
+			// Show first few differences
+			let mut diff_count = 0;
+			let max_diffs = 5;
+			for (i, (exp_line, act_line)) in expected_lines.iter().zip(actual_lines.iter()).enumerate() {
+				if exp_line != act_line && diff_count < max_diffs {
+					eprintln!("\n{} {}:",
+						yansi::Paint::yellow("Difference at line").bold(),
+						i + 1
+					);
+					eprintln!("  - {}", yansi::Paint::red(exp_line));
+					eprintln!("  + {}", yansi::Paint::green(act_line));
+					diff_count += 1;
+				}
+			}
+			
+			if diff_count == max_diffs {
+				eprintln!("\n{}", yansi::Paint::dim("(additional differences omitted)"));
+			}
+		}
+		_ => {
+			// Binary data or invalid UTF-8
+			eprintln!("\n{}:", yansi::Paint::cyan("Expected (bytes)").bold());
+			eprintln!("  {} bytes: {:?}", expected.len(), 
+				if expected.len() <= 50 { 
+					format!("{:?}", expected) 
+				} else { 
+					format!("{:?}...", &expected[..50]) 
+				}
+			);
+			
+			eprintln!("\n{}:", yansi::Paint::cyan("Actual (bytes)").bold());
+			eprintln!("  {} bytes: {:?}", actual.len(),
+				if actual.len() <= 50 { 
+					format!("{:?}", actual) 
+				} else { 
+					format!("{:?}...", &actual[..50]) 
+				}
+			);
+		}
+	}
+	eprintln!();
 }
 
 fn write_manifest<W: std::io::Write>(mut write: W, name: &str, assert2_path: &str) -> std::io::Result<()> {
