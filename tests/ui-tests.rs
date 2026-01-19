@@ -340,22 +340,18 @@ fn print_output_diff(stream_name: &str, expected: &[u8], actual: &[u8]) {
 		_ => {
 			// Binary data or invalid UTF-8
 			writeln!(&mut stderr, "\n{}:", yansi::Paint::cyan("Expected (bytes)").bold()).ok();
-			writeln!(&mut stderr, "  {} bytes: {:?}", expected.len(), 
-				if expected.len() <= 50 { 
-					format!("{:?}", expected) 
-				} else { 
-					format!("{:?}...", &expected[..50]) 
-				}
-			).ok();
+			if expected.len() <= 50 {
+				writeln!(&mut stderr, "  {} bytes: {:?}", expected.len(), expected).ok();
+			} else {
+				writeln!(&mut stderr, "  {} bytes: {:?}...", expected.len(), &expected[..50]).ok();
+			}
 			
 			writeln!(&mut stderr, "\n{}:", yansi::Paint::cyan("Actual (bytes)").bold()).ok();
-			writeln!(&mut stderr, "  {} bytes: {:?}", actual.len(),
-				if actual.len() <= 50 { 
-					format!("{:?}", actual) 
-				} else { 
-					format!("{:?}...", &actual[..50]) 
-				}
-			).ok();
+			if actual.len() <= 50 {
+				writeln!(&mut stderr, "  {} bytes: {:?}", actual.len(), actual).ok();
+			} else {
+				writeln!(&mut stderr, "  {} bytes: {:?}...", actual.len(), &actual[..50]).ok();
+			}
 		}
 	}
 	writeln!(&mut stderr).ok();
