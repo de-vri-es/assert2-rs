@@ -253,22 +253,28 @@ fn print_output_diff(stream_name: &str, expected: &[u8], actual: &[u8]) {
 			let mut diff_count = 0;
 			let max_diffs = 5;
 			let min_len = expected_lines.len().min(actual_lines.len());
+			let mut total_different_lines = 0;
 			
 			// Compare lines that exist in both
 			for i in 0..min_len {
-				if expected_lines[i] != actual_lines[i] && diff_count < max_diffs {
-					eprintln!("\n{} {}:",
-						yansi::Paint::yellow("Difference at line").bold(),
-						i + 1
-					);
-					eprintln!("  - {}", yansi::Paint::red(expected_lines[i]));
-					eprintln!("  + {}", yansi::Paint::green(actual_lines[i]));
-					diff_count += 1;
+				if expected_lines[i] != actual_lines[i] {
+					total_different_lines += 1;
+					if diff_count < max_diffs {
+						eprintln!("\n{} {}:",
+							yansi::Paint::yellow("Difference at line").bold(),
+							i + 1
+						);
+						eprintln!("  - {}", yansi::Paint::red(expected_lines[i]));
+						eprintln!("  + {}", yansi::Paint::green(actual_lines[i]));
+						diff_count += 1;
+					}
 				}
 			}
 			
-			// Show extra lines from expected output
-			if expected_lines.len() > actual_lines.len() && diff_count < max_diffs {
+			// Count and show extra lines from expected output
+			let extra_expected = expected_lines.len().saturating_sub(min_len);
+			total_different_lines += extra_expected;
+			if extra_expected > 0 && diff_count < max_diffs {
 				for i in min_len..expected_lines.len().min(min_len + max_diffs - diff_count) {
 					eprintln!("\n{} {} (only in expected):",
 						yansi::Paint::yellow("Line").bold(),
@@ -279,8 +285,10 @@ fn print_output_diff(stream_name: &str, expected: &[u8], actual: &[u8]) {
 				}
 			}
 			
-			// Show extra lines from actual output
-			if actual_lines.len() > expected_lines.len() && diff_count < max_diffs {
+			// Count and show extra lines from actual output
+			let extra_actual = actual_lines.len().saturating_sub(min_len);
+			total_different_lines += extra_actual;
+			if extra_actual > 0 && diff_count < max_diffs {
 				for i in min_len..actual_lines.len().min(min_len + max_diffs - diff_count) {
 					eprintln!("\n{} {} (only in actual):",
 						yansi::Paint::yellow("Line").bold(),
@@ -291,11 +299,7 @@ fn print_output_diff(stream_name: &str, expected: &[u8], actual: &[u8]) {
 				}
 			}
 			
-			// Check if there are more differences we didn't show
-			let total_different_lines = (0..min_len).filter(|&i| expected_lines[i] != actual_lines[i]).count()
-				+ expected_lines.len().saturating_sub(min_len)
-				+ actual_lines.len().saturating_sub(min_len);
-			
+			// Show message if there are more differences we didn't show
 			if total_different_lines > diff_count {
 				eprintln!("\n{}", yansi::Paint::dim("(additional differences omitted)"));
 			}
