@@ -211,6 +211,27 @@ fn compare_output(expected: &[u8], actual: &[u8]) -> bool {
 	expected == actual
 }
 
+fn escape_non_printable(s: &str) -> String {
+	let mut result = String::new();
+	for ch in s.chars() {
+		match ch {
+			'\\' => result.push_str("\\\\"),
+			'\n' => result.push_str("\\n"),
+			'\r' => result.push_str("\\r"),
+			'\t' => result.push_str("\\t"),
+			'\0' => result.push_str("\\0"),
+			c if c.is_control() || (c as u32) > 0x7E => {
+				// Escape other control characters and non-ASCII printable characters
+				for byte in c.to_string().as_bytes() {
+					result.push_str(&format!("\\x{:02x}", byte));
+				}
+			}
+			c => result.push(c),
+		}
+	}
+	result
+}
+
 fn print_output_diff(stream_name: &str, expected: &[u8], actual: &[u8]) {
 	eprintln!("\n{}: Expected {} differs from actual {}", 
 		yansi::Paint::yellow("Details").bold().bright(),
@@ -223,7 +244,7 @@ fn print_output_diff(stream_name: &str, expected: &[u8], actual: &[u8]) {
 		(Ok(expected_str), Ok(actual_str)) => {
 			eprintln!("\n{}:", yansi::Paint::cyan("Expected").bold());
 			for line in expected_str.lines() {
-				eprintln!("  {}", line);
+				eprintln!("  {}", escape_non_printable(line));
 			}
 			if expected_str.is_empty() {
 				eprintln!("  {}", yansi::Paint::dim("(empty)"));
@@ -231,7 +252,7 @@ fn print_output_diff(stream_name: &str, expected: &[u8], actual: &[u8]) {
 			
 			eprintln!("\n{}:", yansi::Paint::cyan("Actual").bold());
 			for line in actual_str.lines() {
-				eprintln!("  {}", line);
+				eprintln!("  {}", escape_non_printable(line));
 			}
 			if actual_str.is_empty() {
 				eprintln!("  {}", yansi::Paint::dim("(empty)"));
@@ -264,8 +285,10 @@ fn print_output_diff(stream_name: &str, expected: &[u8], actual: &[u8]) {
 							yansi::Paint::yellow("Difference at line").bold(),
 							i + 1
 						);
-						eprintln!("  - {}", yansi::Paint::red(expected_lines[i]));
-						eprintln!("  + {}", yansi::Paint::green(actual_lines[i]));
+						let escaped_expected = escape_non_printable(expected_lines[i]);
+						let escaped_actual = escape_non_printable(actual_lines[i]);
+						eprintln!("  - {}", yansi::Paint::red(&escaped_expected));
+						eprintln!("  + {}", yansi::Paint::green(&escaped_actual));
 						diff_count += 1;
 					}
 				}
@@ -281,7 +304,8 @@ fn print_output_diff(stream_name: &str, expected: &[u8], actual: &[u8]) {
 						yansi::Paint::yellow("Line").bold(),
 						i + 1
 					);
-					eprintln!("  - {}", yansi::Paint::red(expected_lines[i]));
+					let escaped = escape_non_printable(expected_lines[i]);
+					eprintln!("  - {}", yansi::Paint::red(&escaped));
 					diff_count += 1;
 				}
 			}
@@ -296,7 +320,8 @@ fn print_output_diff(stream_name: &str, expected: &[u8], actual: &[u8]) {
 						yansi::Paint::yellow("Line").bold(),
 						i + 1
 					);
-					eprintln!("  + {}", yansi::Paint::green(actual_lines[i]));
+					let escaped = escape_non_printable(actual_lines[i]);
+					eprintln!("  + {}", yansi::Paint::green(&escaped));
 					diff_count += 1;
 				}
 			}
