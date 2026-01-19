@@ -21,14 +21,14 @@ fn ui_tests() {
 
 fn do_main() -> Result<(), ()> {
 	let cases = std::fs::read_dir(Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/ui-tests"))
-		.map_err(|e| error!("Failed to open directory \"cases\": {e}"))?;
+		.map_err(|e| error!("Failed to open directory \"tests/ui-tests\": {e}"))?;
 
 	let mut failed = 0;
 	for entry in cases {
-		let entry = entry.map_err(|e| error!("Failed to read dir entry from \"cases\": {e}"))?;
+		let entry = entry.map_err(|e| error!("Failed to read dir entry from \"tests/ui-tests\": {e}"))?;
 		let file_name = entry.file_name();
 		let file_type = entry.file_type()
-			.map_err(|e| error!("Failed to stat \"cases/{}\": {e}", entry.file_name().to_string_lossy()))?;
+			.map_err(|e| error!("Failed to stat \"tests/ui-tests/{}\": {e}", entry.file_name().to_string_lossy()))?;
 		if file_type.is_dir() {
 			let name = file_name
 				.to_str()
