@@ -212,7 +212,7 @@ fn compare_output(expected: &[u8], actual: &[u8]) -> bool {
 }
 
 fn escape_non_printable(s: &str) -> String {
-	let mut result = String::new();
+	let mut result = String::with_capacity(s.len());
 	for ch in s.chars() {
 		match ch {
 			'\\' => result.push_str("\\\\"),
@@ -225,7 +225,8 @@ fn escape_non_printable(s: &str) -> String {
 				let mut buf = [0u8; 4];
 				let bytes = c.encode_utf8(&mut buf).as_bytes();
 				for &byte in bytes {
-					result.push_str(&format!("\\x{:02x}", byte));
+					use std::fmt::Write;
+					write!(&mut result, "\\x{:02x}", byte).unwrap();
 				}
 			}
 			c => result.push(c),
