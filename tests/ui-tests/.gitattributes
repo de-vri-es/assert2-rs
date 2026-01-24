@@ -1,0 +1,4 @@
+*/stdout-expected.txt eol=lf
+*/stdout-actual.txt eol=lf
+*/stderr-expected.txt eol=lf
+*/stderr-actual.txt eol=lf
