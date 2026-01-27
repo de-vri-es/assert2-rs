@@ -50,7 +50,7 @@ impl syn::parse::Parse for Args {
 		let _comma: syn::token::Comma = input.parse()?;
 		let macro_name = input.parse()?;
 		let _comma: syn::token::Comma = input.parse()?;
-		let expression = syn::Expr::parse_without_eager_brace(input)?;
+		let expression = syn::Expr::parse(input)?;
 		let format_args = if input.is_empty() {
 			FormatArgs::new()
 		} else {

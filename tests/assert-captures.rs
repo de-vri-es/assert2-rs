@@ -66,6 +66,25 @@ fn consume() {
 	assert!(x == "foo");
 }
 
+#[test]
+fn inline_struct() {
+	#[derive(Debug, Eq, PartialEq)]
+	struct Pet {
+		name: String,
+		age: u32,
+	}
+	fn my_pet() -> Pet {
+		Pet {
+			name: "Xiafeiwu".into(),
+			age: 1,
+		}
+	}
+	assert!(my_pet() == Pet {
+		name: "Xiafeiwu".into(),
+		age: 1,
+	});
+}
+
 macro_rules! test_panic {
 	($name:ident, $($expr:tt)*) => {
 		#[test]
