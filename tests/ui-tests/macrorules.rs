@@ -1,4 +1,5 @@
-pub fn main() {
+fn main() {
+	reproducible_panic::install();
 	macro_rules! assert_eq {
 		($left:expr, $right:expr) => {
 			::assert2::assert!($left + $left * $right == $right)

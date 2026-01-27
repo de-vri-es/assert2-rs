@@ -66,7 +66,9 @@ impl<'a> FailedCheck<'a> {
 	pub fn print(&self) {
 		let mut buffer = String::new();
 		let options = options::AssertOptions::get();
-		let (term_width, _term_height) = term_size::dimensions_stderr().unwrap_or((80, 80));
+		let (term_width, _term_height) = terminal_size::terminal_size_of(std::io::stderr())
+			.map(|(w, h)| (w.0 as usize, h.0 as usize))
+			.unwrap_or((80, 80));
 		let mut writer = writer::WrappingWriter::new(&mut buffer, term_width, options.color);
 		self.print_assertion(&mut writer);
 		if !self.fragments.is_empty() {

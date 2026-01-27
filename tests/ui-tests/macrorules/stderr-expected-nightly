@@ -1,0 +1,12 @@
+[1;91mAssertion failed[0m at [1mmain.rs[0m:8:2
+  [35massert[0m[35m!( [0m[36m$left + $left * $right[0m [1;34m==[0m [33m$right[0m[35m )[0m
+with:
+  [35m$left[0m [1;34m=[0m [35m1 + 2[0m
+  [35m$right[0m [1;34m=[0m [35m2 + 3[0m
+with expansion:
+  [36m18[0m [1;34m==[0m [33m5[0m
+
+
+thread 'main' panicked at main.rs:8:5
+assertion failed
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
