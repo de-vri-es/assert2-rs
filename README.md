@@ -23,46 +23,58 @@ use assert2::assert;
 
 ## Examples
 
+See the expression and their evaluation:
+
 ```rust
 check!(6 + 1 <= 2 * 3);
 ```
 
-![Output](https://raw.githubusercontent.com/de-vri-es/assert2-rs/ba98984a32d6381e6710e34eb1fb83e65e851236/binary-operator.png)
+![Output](https://raw.githubusercontent.com/de-vri-es/assert2-rs/3ce6c57b8acea316969e3751094c88cd51a5ae63/binary-operator.png)
 
 ----------
+
+See multiline diffs between the expected and actual value:
 
 ```rust
 check!(scrappy == coco);
 ```
 
-![Output](https://raw.githubusercontent.com/de-vri-es/assert2-rs/54ee3141e9b23a0d9038697d34f29f25ef7fe810/multiline-diff.png)
+![Output](https://raw.githubusercontent.com/de-vri-es/assert2-rs/3ce6c57b8acea316969e3751094c88cd51a5ae63/multiline-diff.png)
 
 ----------
+
+Or just in-line highlighting for short values:
 
 ```rust
 check!((3, Some(4)) == [1, 2, 3].iter().size_hint());
 ```
 
-![Output](https://raw.githubusercontent.com/de-vri-es/assert2-rs/54ee3141e9b23a0d9038697d34f29f25ef7fe810/single-line-diff.png)
+![Output](https://raw.githubusercontent.com/de-vri-es/assert2-rs/3ce6c57b8acea316969e3751094c88cd51a5ae63/single-line-diff.png)
 
 ----------
+
+Test pattern matches:
 
 ```rust
 check!(let Ok(_) = File::open("/non/existing/file"));
 ```
 
-![Output](https://raw.githubusercontent.com/de-vri-es/assert2-rs/54ee3141e9b23a0d9038697d34f29f25ef7fe810/pattern-match.png)
+![Output](https://raw.githubusercontent.com/de-vri-es/assert2-rs/3ce6c57b8acea316969e3751094c88cd51a5ae63/pattern-match.png)
 
 ----------
+
+Capture variables from the pattern for further use:
 
 ```rust
 assert!(let Err(e) = File::open("/non/existing/file"));
 check!(e.kind() == ErrorKind::PermissionDenied);
 ```
 
-![Output](https://github.com/de-vri-es/assert2-rs/blob/54ee3141e9b23a0d9038697d34f29f25ef7fe810/let-assert.png?raw=true)
+![Output](https://raw.githubusercontent.com/de-vri-es/assert2-rs/3ce6c57b8acea316969e3751094c88cd51a5ae63/let-assert.png)
 
 ----------
+
+Run multiple checks in one macro using `&&` chains (also supports `let`-chains):
 
 ```rust
 check!(
@@ -71,7 +83,7 @@ check!(
 );
 ```
 
-![Output](https://github.com/de-vri-es/assert2-rs/blob/54ee3141e9b23a0d9038697d34f29f25ef7fe810/let-assert.png?raw=true)
+![Output](https://raw.githubusercontent.com/de-vri-es/assert2-rs/3ce6c57b8acea316969e3751094c88cd51a5ae63/let-chain.png)
 
 ## `assert` vs `check`
 The crate provides two macros: `check!(...)` and `assert!(...)`.
