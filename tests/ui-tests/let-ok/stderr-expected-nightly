@@ -1,4 +1,4 @@
-[1;91mAssertion failed[0m at [1mmain.rs[0m:5:2
+[1;31mAssertion failed[0m at [1mmain.rs[0m:5:2
   [35massert[0m[35m!( [0m[1;34mlet [0m[36mOk(foo)[0m[1;34m = [0m[33mResult::<i32, &str>::Err("Oh no!")[0m[35m )[0m
 with expansion:
   [33mErr("Oh no!")[0m

@@ -1,6 +1,6 @@
-[1;91mAssertion failed[0m at [1mmain.rs[0m:3:2
+[1;31mAssertion failed[0m at [1mmain.rs[0m:3:2
   [35massert[0m[35m!( [0m[2mlet [0m[2mSome(x)[0m[2m = [0m[2mSome(3 + 2)[0m[2m && [0m[36mx[0m [1;34m==[0m [33m7[0m[2m && [0m[2m...[0m[35m )[0m
-                                        [1;91m^[0m[1;91m^[0m[1;91m^^[0m[1;91m^[0m[1;91m^[0m
+                                        [1;31m^[0m[1;31m^[0m[1;31m^^[0m[1;31m^[0m[1;31m^[0m
 with expansion:
   [36m5[0m [1;34m==[0m [33m7[0m
 

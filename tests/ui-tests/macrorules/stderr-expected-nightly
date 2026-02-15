@@ -1,4 +1,4 @@
-[1;91mAssertion failed[0m at [1mmain.rs[0m:8:2
+[1;31mAssertion failed[0m at [1mmain.rs[0m:8:2
   [35massert[0m[35m!( [0m[36m$left + $left * $right[0m [1;34m==[0m [33m$right[0m[35m )[0m
 with:
   [35m$left[0m [1;34m=[0m [35m1 + 2[0m

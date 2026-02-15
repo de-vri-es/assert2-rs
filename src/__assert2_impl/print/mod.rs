@@ -9,7 +9,7 @@ use self::options::{AssertOptions, ExpansionFormat};
 mod writer;
 
 const DEFAULT_STYLE: yansi::Style = yansi::Style::new();
-const ERROR_STYLE: yansi::Style = yansi::Style::new().bright_red().bold();
+const ERROR_STYLE: yansi::Style = yansi::Style::new().red().bold();
 const MACRO_STYLE: yansi::Style = yansi::Style::new().magenta();
 const OP_STYLE: yansi::Style = yansi::Style::new().blue().bold();
 const LEFT_STYLE: yansi::Style = yansi::Style::new().cyan();
@@ -164,7 +164,7 @@ impl Predicate<'_> {
 				writer.write_snippet(&make_snippet(expression, RIGHT_STYLE, failed, undercurl));
 			},
 			Self::Bool { expression } => {
-				writer.write_snippet(&make_snippet(expression, RIGHT_STYLE, failed, undercurl));
+				writer.write_snippet(&make_snippet(expression, LEFT_STYLE, failed, undercurl));
 			}
 		}
 	}
@@ -217,7 +217,7 @@ impl Expansion<'_> {
 	fn write_bool(writer: &mut writer::WrappingWriter) {
 		writer.write("with expansion:\n");
 		writer.write("  ");
-		writer.write_styled("false", RIGHT_STYLE);
+		writer.write_styled("false", LEFT_STYLE);
 	}
 
 	fn write_let(writer: &mut writer::WrappingWriter, expression: &dyn Debug) {
