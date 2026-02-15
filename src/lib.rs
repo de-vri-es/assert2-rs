@@ -343,58 +343,11 @@ macro_rules! debug_assert {
 	}
 }
 
-/// Assert that an expression matches a pattern.
+/// Assert that an expression matches a pattern and make all captured variables available in the calling scope.
 ///
-/// This is very similar to `assert!(let pattern = expression)`,
-/// except that this macro makes all placeholders available in the calling scope.
-/// This can be used to assert a pattern match,
-/// and then run more checks on the captured variables.
-///
-/// For example:
-/// ```
-/// # #![allow(deprecated)]
-/// # use assert2::let_assert;
-/// # use assert2::check;
-/// # fn main() {
-/// # struct Foo {
-/// #  name: &'static str,
-/// # }
-/// # enum Error {
-/// #   InvalidName(InvalidNameError),
-/// # }
-/// # struct InvalidNameError {
-/// #   name: &'static str,
-/// # }
-/// # impl Foo {
-/// #   fn try_new(name: &'static str) -> Result<Self, Error> {
-/// #     if name == "bar" {
-/// #       Ok(Self { name })
-/// #     } else {
-/// #       Err(Error::InvalidName(InvalidNameError { name }))
-/// #     }
-/// #   }
-/// #   fn name(&self) -> &'static str {
-/// #     self.name
-/// #   }
-/// # }
-/// # impl InvalidNameError {
-/// #   fn name(&self) -> &'static str {
-/// #     self.name
-/// #   }
-/// #   fn to_string(&self) -> String {
-/// #     format!("invalid name: {}", self.name)
-/// #   }
-/// # }
-/// let_assert!(Ok(foo) = Foo::try_new("bar"));
-/// check!(foo.name() == "bar");
-///
-/// let_assert!(Err(Error::InvalidName(e)) = Foo::try_new("bogus name"));
-/// check!(e.name() == "bogus name");
-/// check!(e.to_string() == "invalid name: bogus name");
-/// # }
-/// ```
+/// Since version 0.3.17 this is is equivalent to `assert!(let pattern = expression)`, and this macro is now deprecated.
 #[macro_export]
-#[deprecated(since = "0.4.0", note = "use `assert2::assert!(let ...)` instead")]
+#[deprecated(since = "0.3.17", note = "use `assert2::assert!(let ...)` instead")]
 macro_rules! let_assert {
 	($($tokens:tt)*) => {
 		$crate::__assert2_impl::assert_impl!($crate, "let_assert", let $($tokens)*);
