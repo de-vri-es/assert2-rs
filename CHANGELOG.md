@@ -3,6 +3,7 @@ main:
   * Split top-level `&&` expressions, and highlight which one failed.
   * Make `assert` capture placeholders in patterns.
   * Deprecate the `let_assert` macro.
+  * Use location information of spans to preserve whitespace of checked expressions when possible.
   * Bump the MSRV to `1.71`.
 
 v0.3.16 - 2025-07-11:
