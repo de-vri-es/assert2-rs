@@ -77,7 +77,7 @@ check!(e.kind() == ErrorKind::PermissionDenied);
 Run multiple checks in one macro using `&&` chains (also supports `let`-chains):
 
 ```rust
-check!(
+assert!(
   let Err(e) = File::open("/non/existing/file")
   && e.kind() == ErrorKind::PermissionDenied
 );

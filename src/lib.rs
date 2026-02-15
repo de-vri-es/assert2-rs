@@ -107,10 +107,10 @@
 //! Run multiple checks in one macro using `&&` chains (also supports `let`-chains):
 //!
 //! ```should_panic
-//! # use assert2::check;
+//! # use assert2::assert;
 //! # use std::fs::File;
 //! # use std::io::ErrorKind;
-//! check!(
+//! assert!(
 //!   let Err(e) = File::open("/non/existing/file")
 //!   && e.kind() == ErrorKind::PermissionDenied
 //! );
