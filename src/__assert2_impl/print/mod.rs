@@ -61,14 +61,26 @@ pub enum Expansion<'a> {
 	Bool,
 }
 
+fn terminal_width() -> usize {
+	#[cfg(any(unix, windows))]
+	{
+		use terminal_size::{Width, terminal_size_of};
+		if let Some((Width(width), _height)) = terminal_size_of(std::io::stderr()) {
+			return width as usize;
+		}
+	}
+
+	// TODO: Is this fallback a good idea?
+	// Or is it better to disable features that misbehave when the terminal width is unknown?
+	80
+}
+
 impl<'a> FailedCheck<'a> {
 	#[rustfmt::skip]
 	pub fn print(&self) {
 		let mut buffer = String::new();
 		let options = options::AssertOptions::get();
-		let (term_width, _term_height) = terminal_size::terminal_size_of(std::io::stderr())
-			.map(|(w, h)| (w.0 as usize, h.0 as usize))
-			.unwrap_or((80, 80));
+		let term_width = terminal_width();
 		let mut writer = writer::WrappingWriter::new(&mut buffer, term_width, options.color);
 		self.print_assertion(&mut writer);
 		if !self.fragments.is_empty() {
