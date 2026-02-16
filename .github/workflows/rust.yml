@@ -18,7 +18,24 @@ jobs:
         run: |
           rustup install ${{ matrix.rust }} --profile minimal
           rustup default ${{ matrix.rust }}
-      - name: Build
-        run: cargo build --release --all-features --color=always
-      - name: Test
-        run: cargo test --release --all-features --color=always
+      - name: cargo build
+        run: cargo build --release --all-features --all-targets --color=always
+      - name: cargo test
+        run: cargo test --release --all-features --all-targets --color=always
+  check:
+    name:  check-only ${{ matrix.target }}, rust-${{ matrix.rust }}
+    strategy:
+      matrix:
+        target: [wasm32-unknown-unknown]
+        rust: [stable, nightly, 1.71.0]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@master
+      - name: Install Rust ${{ matrix.rust }} target ${{ matrix.target }}
+        run: |
+          rustup install ${{ matrix.rust }} --profile minimal
+          rustup default ${{ matrix.rust }}
+          rustup target add ${{ matrix.target }}
+      - name: cargo check
+        run: cargo check --release --all-features --all-targets --color=always --target ${{ matrix.target }}
