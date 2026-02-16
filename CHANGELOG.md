@@ -1,3 +1,6 @@
+main:
+  * Fix compilation on non-Unix and non-Windows platforms.
+
 v0.3.17 - 2026-02-15:
   * Support `let` chains in assertions.
   * Split top-level `&&` expressions, and highlight which one failed.

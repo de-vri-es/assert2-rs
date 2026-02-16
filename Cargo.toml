@@ -19,6 +19,8 @@ assert2-macros = { version = "=0.3.17", path = "assert2-macros" }
 yansi = "1.0.1"
 diff = "0.1.13"
 unicode-width = "0.2.1"
+
+[target.'cfg(any(unix, windows))'.dependencies]
 terminal_size = "0.4.3"
 
 [dev-dependencies]
