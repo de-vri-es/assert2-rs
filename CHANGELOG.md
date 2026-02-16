@@ -1,4 +1,4 @@
-main:
+v0.3.18 - 2026-02-16:
   * Fix compilation on non-Unix and non-Windows platforms.
 
 v0.3.17 - 2026-02-15:
