@@ -339,6 +339,16 @@ macro_rules! check {
 	}
 }
 
+#[macro_export]
+macro_rules! check_ctx {
+	($ctx:expr, $($tokens:tt)*) => {
+		if let Err(()) = $crate::__assert2_impl::check_impl!($crate, "assert", $($tokens)*) {
+			let ctx: &$crate::CheckContext = $ctx;
+			ctx.set_fail();
+		}
+	};
+}
+
 /// Assert that an expression evaluates to true or matches a pattern.
 ///
 /// This macro supports the same checks as [`assert`](macro.assert.html), but they are only executed if debug assertions are enabled.
@@ -381,3 +391,61 @@ macro_rules! __assert2_stringify {
 
 #[doc(hidden)]
 pub use core::stringify as __assert2_core_stringify;
+use core::sync::atomic::{AtomicBool, Ordering};
+
+pub struct CheckContext {
+	check_failed: AtomicBool
+}
+
+impl CheckContext {
+	pub fn new() -> Self {
+		Self {
+			check_failed: AtomicBool::new(false)
+		}
+	}
+
+	pub fn set_fail(&self) {
+		self.check_failed.store(true, Ordering::Release);
+	}
+}
+
+impl Drop for CheckContext {
+	fn drop(&mut self) {
+		if self.check_failed.load(Ordering::Acquire) {
+			panic!("check failed")
+		}
+	}
+}
+
+#[cfg(test)]
+mod test {
+	use super::*;
+
+	#[test]
+	fn test_check_in_loop() {
+		let ctx = CheckContext::new();
+		for i in 0..6 {
+			check_ctx!(&ctx, i%2 == 0, "Check failed for i={i}");
+		}
+	}
+	
+	#[test]
+	fn test_check_nested() {
+		let ctx = CheckContext::new();
+
+		let value = 123;
+
+		assert_something(&ctx, value);
+	
+		assert_more_things(&ctx, value);
+	}
+
+	fn assert_something(ctx: &CheckContext, i: isize) {
+		check_ctx!(ctx, i > 200);
+	}
+
+	fn assert_more_things(ctx: &CheckContext, i: isize) {
+		check_ctx!(ctx, i % 2 == 0);
+	}
+}
+
