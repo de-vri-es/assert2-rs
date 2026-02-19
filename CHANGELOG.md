@@ -1,3 +1,6 @@
+v0.4.0 - 2026-02-19:
+  * Re-release v0.3.18 as major bump, because the `assert!(let ...)` now breaks without trailing semicolon.
+
 v0.3.18 - 2026-02-16:
   * Fix compilation on non-Unix and non-Windows platforms.
 
