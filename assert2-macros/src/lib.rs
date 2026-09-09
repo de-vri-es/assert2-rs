@@ -306,10 +306,7 @@ fn tokens_to_string(tokens: TokenStream, fragments: &mut Fragments) -> TokenStre
 			if let Some(end) = end {
 				match whitespace::whitespace_between(end, tree.span()) {
 					Some(whitespace) => output.push_str(&whitespace.to_string()),
-					None => {
-						print!("Failed to determine whitespace before tree");
-						output.push(' ');
-					},
+					None => output.push(' '),
 				};
 			};
 
