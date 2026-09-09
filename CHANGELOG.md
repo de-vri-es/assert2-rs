@@ -1,3 +1,6 @@
+v0.4.1 - 2026-09-09:
+  * Fix build time spam when macro failes to determine whitespace between tokens.
+
 v0.4.0 - 2026-02-19:
   * Re-release v0.3.18 as major bump, because the `assert!(let ...)` now breaks without trailing semicolon.
 
